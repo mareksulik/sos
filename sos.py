@@ -106,12 +106,12 @@ def get_search_volume_live_with_history(login, password, kw_list_tuple, loc_code
 # --- Streamlit Aplikácia ---
 
 # Odstránený layout="wide", použije sa default "centered"
-st.set_page_config(page_title="Marš! Share of Search") 
+st.set_page_config(page_title="Share of Search") 
 
 # Odstránený CSS blok pre šírku
 # st.markdown( f""" <style> ... </style> """, unsafe_allow_html=True, )
 
-st.title("📊📈 Marš! Share of Search Tool") 
+st.title("📊📈 Share of Search Tool") 
 
 # --- Sidebar ---
 st.sidebar.header("⚙️ Nastavenia DataForSEO API")
@@ -287,7 +287,7 @@ if session_key in st.session_state:
             try:
                 if not merged_df_plot.empty: 
                     unique_periods = sorted(merged_df_plot[period_col_name].unique(), key=period_sort_key) 
-                    fig_bar_share = px.bar(merged_df_plot, x=period_col_name, y='Share_Percent', color='Keyword', text='Share_Percent', barmode='stack', labels={'Share_Percent': '% Podiel', 'Keyword': 'Značka', period_col_name: granularity_label}, title="Marš! Share of Search (Podiel %)", category_orders={"Keyword": keyword_order_list, period_col_name: unique_periods})
+                    fig_bar_share = px.bar(merged_df_plot, x=period_col_name, y='Share_Percent', color='Keyword', text='Share_Percent', barmode='stack', labels={'Share_Percent': '% Podiel', 'Keyword': 'Značka', period_col_name: granularity_label}, title="Share of Search (Podiel %)", category_orders={"Keyword": keyword_order_list, period_col_name: unique_periods})
                     fig_bar_share.update_layout(yaxis_title='% celkového objemu vyhľadávania', yaxis_ticksuffix="%", xaxis_type='category', legend_title_text='Značky', height=800) 
                     fig_bar_share.update_traces(texttemplate='%{text:.1f}%', textposition='inside', insidetextanchor='middle', textfont_size=9) 
                     st.plotly_chart(fig_bar_share, use_container_width=True) 
