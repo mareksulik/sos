@@ -111,7 +111,7 @@ st.set_page_config(page_title="Marš! Share of Search")
 # Odstránený CSS blok pre šírku
 # st.markdown( f""" <style> ... </style> """, unsafe_allow_html=True, )
 
-st.title("📊📈 Marš! Share of Search") 
+st.title("📊📈 Marš! Share of Search Tool") 
 
 # --- Sidebar ---
 st.sidebar.header("⚙️ Nastavenia DataForSEO API")
@@ -138,7 +138,7 @@ else: login_status_placeholder.info("Zadajte API Login a Password.")
 
 st.sidebar.markdown("---"); st.sidebar.header("ℹ️ Endpoint a Dokumentácia"); 
 st.sidebar.markdown(f"Používa sa:"); st.sidebar.code(SEARCH_VOLUME_LIVE_URL, language=None)
-st.sidebar.markdown("[DataForSEO Dokumentácia v3](https://docs.dataforseo.com/v3/)")
+st.sidebar.markdown("[DataForSEO Dokumentácia v3:](https://docs.dataforseo.com/v3/)")
 st.sidebar.markdown("[Dokumentácia k Lokáciám](https://docs.dataforseo.com/v3/keywords_data/google_ads/locations/)")
 st.sidebar.markdown("[Dokumentácia k Jazykom](https://docs.dataforseo.com/v3/keywords_data/google_ads/languages/)")
 st.sidebar.markdown("[Dokumentácia k Search Volume](https://docs.dataforseo.com/v3/keywords_data/google_ads/search_volume/live/)")
