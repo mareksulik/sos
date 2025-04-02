@@ -17,7 +17,7 @@ LANGUAGES_URL = "https://api.dataforseo.com/v3/keywords_data/google_ads/language
 # --- Helper funkcie pre získanie lokácií a jazykov (s cache) ---
 @st.cache_data 
 def load_locations(login, password):
-    if not login or not password: return [], "Chýbajú API prihlasovacie údaje."     
+    if not login or not password: return [], "Chýbajú API prihlasovacie údaje:"     
     credentials = f"{login}:{password}"; encoded_credentials = base64.b64encode(credentials.encode()).decode()
     headers = {'Authorization': f'Basic {encoded_credentials}'}    
     location_options = []; error_msg = None
