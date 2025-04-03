@@ -115,7 +115,9 @@ def get_search_volume_live_with_history(login, password, kw_list_tuple, loc_code
                                     results_list.append({ "Keyword": keyword, "Date": month_date, "Search Volume": search_volume_value })
                             except ValueError: pass
             if not results_list and response_data["tasks"][0].get("status_code") == 20000:
-                error_msg = "Varovanie: API nevrátilo žiadne platné mesačné historické dáta ('monthly_searches') v zadanom rozsahu dátumov."
+                # Zmenená správa - API volanie bolo OK, len nevrátilo dáta pre daný rozsah
+                error_msg = None # Nejde o chybu, len prázdny výsledok pre dané kritériá
+                return [], None # Vrátime prázdny zoznam a žiadnu chybu
         # Detailnejšie chybové hlásenie pre neautorizovaný prístup
         elif response_data.get("tasks") and response_data["tasks"][0].get("status_code") == 40101:
              error_msg = f"Chyba API: Kód `{response_data['tasks'][0].get('status_code', 'N/A')}` - {response_data['tasks'][0].get('status_message', 'N/A')}. Skontrolujte API prihlasovacie údaje v Streamlit Secrets."
@@ -130,10 +132,16 @@ def get_search_volume_live_with_history(login, password, kw_list_tuple, loc_code
     except requests.exceptions.RequestException as e: error_msg = f"Chyba pri komunikácii s API: {e}";
     except json.JSONDecodeError: error_msg = f"Chyba: Nepodarilo sa dekódovať JSON odpoveď.\n   Obsah (prvých 500 znakov): {response.text[:500]}"
     except Exception as e: error_msg = f"Nastala neočakávaná chyba v spracovaní API volania: {e}"
-    if error_msg: return None, error_msg
+
+    # Vrátime výsledky alebo chybu
+    if error_msg:
+        return None, error_msg
+    elif not results_list:
+        # Ak nebola chyba, ale zoznam je prázdny, vrátime prázdny zoznam
+        return [], None
     else:
-        if not results_list: return None, "Varovanie: Nenašli sa žiadne dáta pre zadané kritériá."
         return results_list, None
+
 
 # --- Streamlit Aplikácia ---
 
@@ -149,21 +157,29 @@ if not app_pin:
     st.error("Chyba konfigurácie: PIN kód nie je nastavený v Streamlit Secrets ([app] -> pin). Aplikácia nemôže pokračovať.")
     st.stop() # Zastaví vykonávanie skriptu
 
-entered_pin = pin_placeholder.text_input("🔑 Zadajte prístupový PIN kód:", type="password", key="pin_input")
+# Udržiavame stav overenia v session_state
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
 
-if entered_pin:
-    if entered_pin == app_pin:
-        authenticated = True
-        pin_placeholder.empty() # Skryje vstup pre PIN po úspešnom overení
+if not st.session_state.authenticated:
+    entered_pin = pin_placeholder.text_input("🔑 Zadajte prístupový PIN kód:", type="password", key="pin_input")
+    if entered_pin:
+        if entered_pin == app_pin:
+            st.session_state.authenticated = True
+            pin_placeholder.empty() # Skryje vstup pre PIN po úspešnom overení
+            st.rerun() # Znovu spustí skript, aby sa zobrazila hlavná časť
+        else:
+            st.error("Nesprávny PIN kód.")
+            st.stop() # Zastaví beh, kým nie je PIN správny
     else:
-        st.error("Nesprávny PIN kód.")
-        # Nepokračuj ďalej, kým nie je správny PIN
-elif not entered_pin:
-     st.info("Pre prístup k aplikácii zadajte PIN kód.")
-     # Nepokračuj ďalej, kým nie je zadaný PIN
+         # Zobrazí výzvu iba ak ešte nebol zadaný žiadny PIN
+         if not entered_pin:
+             st.info("Pre prístup k aplikácii zadajte PIN kód.")
+         st.stop() # Zastaví beh, kým nie je zadaný PIN
 
 # --- Hlavná Aplikácia (zobrazí sa len po úspešnom overení PINom) ---
-if authenticated:
+# Použijeme st.session_state.authenticated na kontrolu
+if st.session_state.authenticated:
     # Načítanie API prihlasovacích údajov zo Streamlit Secrets
     # Použijeme .get() pre bezpečnejší prístup, ak by kľúče chýbali
     dataforseo_api_login = st.secrets.get("dataforseo", {}).get("login")
@@ -275,7 +291,7 @@ if authenticated:
     # Vytvoríme kľúč pre session cache (bez credentials, tie sú fixné per session/deploy)
     session_key = f"data_{tuple(sorted(keywords_list))}_{selected_location_code}_{selected_language_code}_{date_from_input}_{date_to_input}"
     cache_info_placeholder = st.empty()
-    if session_key in st.session_state and st.session_state[session_key].get("data"):
+    if session_key in st.session_state and st.session_state[session_key].get("data") is not None: # Kontrola či 'data' nie je None
          cache_info_placeholder.success("✅ Dáta pre tieto parametre sú v cache session.")
 
     if st.button("📊 Získať dáta a zobraziť grafy", type="primary", disabled=run_button_disabled):
@@ -289,6 +305,7 @@ if authenticated:
             if session_key in st.session_state:
                 results_data_list = st.session_state[session_key].get("data")
                 error_msg = st.session_state[session_key].get("error")
+                # Pozor: Aj prázdny zoznam [] je platný výsledok (nie None)
                 if results_data_list is not None or error_msg is not None:
                      cache_info_placeholder.success("✅ Používam dáta z cache session.")
                      loaded_from_session = True
@@ -309,8 +326,13 @@ if authenticated:
             current_data = st.session_state[session_key].get("data")
             current_error = st.session_state[session_key].get("error")
 
-            if not loaded_from_session and not current_error and current_data:
+            # Zobrazíme úspech len ak sme naozaj volali API a získali dáta
+            if not loaded_from_session and not current_error and current_data is not None: # Aj prázdny list je OK
                 st.success("✅ Dáta úspešne získané z API!")
+            # Ak API nevrátilo chybu, ale ani dáta (results_data_list je [])
+            elif not loaded_from_session and not current_error and current_data == []:
+                st.info("ℹ️ API nevrátilo žiadne dáta pre zadané kritériá.")
+
 
     # --- ZOBRAZENIE VÝSLEDKOV (Mimo 'if st.button', ale stále v 'if authenticated') ---
     # Zobrazí výsledky, ak existujú v session state pre daný kľúč
@@ -318,232 +340,276 @@ if authenticated:
         current_data = st.session_state[session_key].get("data")
         current_error = st.session_state[session_key].get("error")
 
-        if current_error: st.error(f"🚨 Nastala chyba pri získavaní dát:\n{current_error}")
-        elif current_data:
-            history_df_raw = pd.DataFrame(current_data); history_df_raw['Date'] = pd.to_datetime(history_df_raw['Date'])
+        # Ak nastala chyba pri API volaní (uložená v session)
+        if current_error:
+            st.error(f"🚨 Nastala chyba pri získavaní dát:\n{current_error}")
+        # Ak máme dáta (current_data nie je None)
+        elif current_data is not None:
+            # Skontrolujeme, či máme nejaké dáta na spracovanie
+            if not current_data: # current_data je prázdny zoznam []
+                 st.info("ℹ️ Neboli nájdené žiadne historické dáta pre zadané kľúčové slová, lokáciu a jazyk v danom časovom období.")
+            else:
+                # Máme dáta, pokračujeme v spracovaní a zobrazení
+                history_df_raw = pd.DataFrame(current_data); history_df_raw['Date'] = pd.to_datetime(history_df_raw['Date'])
 
-            # --- Agregácia dát ---
-            try:
-                history_df_agg = history_df_raw.copy()
-                period_col_name = 'Period'; granularity_label = granularity.replace('e','á')
-                period_sort_key = None;
-                if granularity == 'Ročne': history_df_agg[period_col_name] = history_df_agg['Date'].dt.year.astype(str); period_sort_key = lambda x: pd.to_numeric(x)
-                elif granularity == 'Štvrťročne': history_df_agg[period_col_name] = history_df_agg['Date'].dt.to_period('Q').astype(str); period_sort_key = lambda x: pd.Period(x, freq='Q')
-                else: history_df_agg[period_col_name] = history_df_agg['Date'].dt.strftime('%Y-%m'); period_sort_key = lambda x: pd.to_datetime(x, format='%Y-%m')
-
-                period_volume_sum_df = history_df_agg.groupby([period_col_name, 'Keyword'], observed=False)['Search Volume'].sum().reset_index()
-                total_period_volume_sum_df = period_volume_sum_df.groupby(period_col_name, observed=False)['Search Volume'].sum().reset_index().rename(columns={'Search Volume': 'Total Volume'})
-                period_volume_avg_df = history_df_agg.groupby([period_col_name, 'Keyword'], observed=False)['Search Volume'].mean().reset_index().rename(columns={'Search Volume': 'Average Search Volume'})
-                months_in_period = history_df_agg.groupby(period_col_name, observed=False)['Date'].nunique().rename('Num Months')
-                total_period_volume_avg_df = pd.merge(total_period_volume_sum_df, months_in_period, on=period_col_name)
-                total_period_volume_avg_df['Average Total Volume'] = total_period_volume_avg_df['Total Volume'] / total_period_volume_avg_df['Num Months']
-                total_period_volume_avg_df = total_period_volume_avg_df[[period_col_name, 'Average Total Volume']]
-                merged_period_df = pd.merge(period_volume_sum_df, total_period_volume_sum_df, on=period_col_name)
-                merged_period_df['Share_Percent'] = 0.0; mask = merged_period_df['Total Volume'] > 0
-                merged_period_df.loc[mask, 'Share_Percent'] = (merged_period_df['Search Volume'] / merged_period_df['Total Volume']) * 100
-                merged_period_df.fillna({'Share_Percent': 0, 'Search Volume': 0}, inplace=True)
-                # Filtrujeme až pre graf, aby sme mali všetky dáta pre výpočty
-                # merged_df_plot = merged_period_df[merged_period_df['Total Volume'] > 0].copy()
-                aggregation_successful = True
-            except Exception as e:
-                st.error(f"Chyba pri agregácii dát podľa granularity '{granularity}': {e}"); st.exception(e)
-                merged_period_df, period_volume_avg_df, total_period_volume_avg_df, period_volume_sum_df = pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-                aggregation_successful = False
-
-            # --- Zobrazenie grafov ---
-            if aggregation_successful:
-                total_volume_overall = None; keyword_order_list = None
-                if not period_volume_sum_df.empty:
-                     # Zoradíme KW podľa celkového objemu za celé obdobie
-                     total_volume_overall = period_volume_sum_df.groupby('Keyword')['Search Volume'].sum().sort_values(ascending=False).index
-                     keyword_order_list = list(total_volume_overall)
-
-                # Filtrujeme dáta pre graf podielu až tu
-                merged_df_plot = merged_period_df[merged_period_df['Total Volume'] > 0].copy()
-
-                # --- Hlavný Graf: Podiel (%) ---
-                st.markdown("---"); st.subheader(f"📊 {granularity} podiel | Lokácia: {selected_location_display}, Jazyk: {selected_language_display}")
+                # --- Agregácia dát ---
+                aggregation_successful = False # Prednastavené na False
                 try:
-                    if not merged_df_plot.empty:
-                        unique_periods = sorted(merged_df_plot[period_col_name].unique(), key=period_sort_key)
-                        fig_bar_share = px.bar(merged_df_plot, x=period_col_name, y='Share_Percent', color='Keyword', text='Share_Percent', barmode='stack', labels={'Share_Percent': '% Podiel', 'Keyword': 'Značka', period_col_name: granularity_label}, title="Share of Search (Podiel %)", category_orders={"Keyword": keyword_order_list, period_col_name: unique_periods})
-                        fig_bar_share.update_layout(yaxis_title='% celkového objemu vyhľadávania', yaxis_ticksuffix="%", xaxis_type='category', legend_title_text='Značky', height=800)
-                        fig_bar_share.update_traces(texttemplate='%{text:.1f}%', textposition='inside', insidetextanchor='middle', textfont_size=12)
-                        st.plotly_chart(fig_bar_share, use_container_width=True)
-                        try: img_bytes_bar = fig_bar_share.to_image(format="png", scale=3); st.download_button(label="📥 Stiahnuť Graf Podielu (PNG)", data=img_bytes_bar, file_name=f"sos_share_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_share_{granularity}")
-                        except Exception as img_e: st.warning(f"Chyba pri exporte PNG grafu Podielu: {img_e}. Skontrolujte 'kaleido' inštaláciu.")
-                    elif not current_error: st.warning(f"Nenašli sa žiadne dáta na zobrazenie {granularity.lower()} grafu podielu (celkový objem bol 0).")
-                except Exception as e: st.error(f"Chyba pri generovaní {granularity.lower()} grafu podielu: {e}"); st.exception(e)
+                    history_df_agg = history_df_raw.copy()
+                    period_col_name = 'Period'; granularity_label = granularity.replace('e','á')
+                    period_sort_key = None;
+                    if granularity == 'Ročne': history_df_agg[period_col_name] = history_df_agg['Date'].dt.year.astype(str); period_sort_key = lambda x: pd.to_numeric(x)
+                    elif granularity == 'Štvrťročne': history_df_agg[period_col_name] = history_df_agg['Date'].dt.to_period('Q').astype(str); period_sort_key = lambda x: pd.Period(x, freq='Q')
+                    else: history_df_agg[period_col_name] = history_df_agg['Date'].dt.strftime('%Y-%m'); period_sort_key = lambda x: pd.to_datetime(x, format='%Y-%m')
 
-                st.markdown("---")
-                st.header(f"Detailné analýzy ({granularity})")
+                    period_volume_sum_df = history_df_agg.groupby([period_col_name, 'Keyword'], observed=False)['Search Volume'].sum().reset_index()
+                    total_period_volume_sum_df = period_volume_sum_df.groupby(period_col_name, observed=False)['Search Volume'].sum().reset_index().rename(columns={'Search Volume': 'Total Volume'})
+                    period_volume_avg_df = history_df_agg.groupby([period_col_name, 'Keyword'], observed=False)['Search Volume'].mean().reset_index().rename(columns={'Search Volume': 'Average Search Volume'})
+                    months_in_period = history_df_agg.groupby(period_col_name, observed=False)['Date'].nunique().rename('Num Months')
+                    total_period_volume_avg_df = pd.merge(total_period_volume_sum_df, months_in_period, on=period_col_name)
+                    # Ošetrenie delenia nulou, ak by Num Months bolo 0 (nemalo by nastať, ale pre istotu)
+                    total_period_volume_avg_df['Average Total Volume'] = total_period_volume_avg_df.apply(lambda row: row['Total Volume'] / row['Num Months'] if row['Num Months'] > 0 else 0, axis=1)
+                    total_period_volume_avg_df = total_period_volume_avg_df[[period_col_name, 'Average Total Volume']]
+                    merged_period_df = pd.merge(period_volume_sum_df, total_period_volume_sum_df, on=period_col_name)
+                    merged_period_df['Share_Percent'] = 0.0; mask = merged_period_df['Total Volume'] > 0
+                    merged_period_df.loc[mask, 'Share_Percent'] = (merged_period_df['Search Volume'] / merged_period_df['Total Volume']) * 100
+                    merged_period_df.fillna({'Share_Percent': 0, 'Search Volume': 0}, inplace=True)
+                    aggregation_successful = True
+                except Exception as e:
+                    st.error(f"Chyba pri agregácii dát podľa granularity '{granularity}': {e}"); st.exception(e)
+                    # Vynulujeme DF pre prípad chyby
+                    merged_period_df, period_volume_avg_df, total_period_volume_avg_df, period_volume_sum_df = pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
-                # Zobrazujeme detailné grafy iba ak máme nejaké dáta v sumárnom DF
-                if not period_volume_sum_df.empty:
+                # --- Zobrazenie grafov ---
+                if aggregation_successful:
+                    keyword_order_list = None
+                    if not period_volume_sum_df.empty:
+                         # Zoradíme KW podľa celkového objemu za celé obdobie
+                         total_volume_overall = period_volume_sum_df.groupby('Keyword')['Search Volume'].sum().sort_values(ascending=False).index
+                         keyword_order_list = list(total_volume_overall)
 
-                    # --- Graf: Celkový SUMÁRNY objem segmentu ---
-                    st.subheader(f"📈 Celkový objem segmentu")
+                    # Filtrujeme dáta pre graf podielu až tu
+                    merged_df_plot = merged_period_df[merged_period_df['Total Volume'] > 0].copy()
+
+                    # --- Hlavný Graf: Podiel (%) ---
+                    st.markdown("---"); st.subheader(f"📊 {granularity} podiel | Lokácia: {selected_location_display}, Jazyk: {selected_language_display}")
                     try:
-                        if not total_period_volume_sum_df.empty and total_period_volume_sum_df['Total Volume'].sum() > 0:
-                             unique_periods_sum_total = sorted(total_period_volume_sum_df[period_col_name].unique(), key=period_sort_key)
-                             # Použijeme category_orders aj tu pre konzistentné zoradenie osi X
-                             fig_total_sum_volume = px.bar(total_period_volume_sum_df, x=period_col_name, y='Total Volume', labels={'Total Volume': 'Celkový objem', period_col_name: granularity_label}, title=f"Celkový objem segmentu ({granularity.lower()}) - Súčet", category_orders={period_col_name: unique_periods_sum_total})
-                             fig_total_sum_volume.update_layout(yaxis_title='Celkový objem vyhľadávania (Súčet)', xaxis_type='category', height=550)
-                             fig_total_sum_volume.update_traces(texttemplate='%{y:,.0f}', textposition='outside')
-                             st.plotly_chart(fig_total_sum_volume, use_container_width=True)
-                             try: img_bytes_total_sum = fig_total_sum_volume.to_image(format="png", scale=3); st.download_button(label="📥 Stiahnuť Graf Celk. Obj. (Súčet)", data=img_bytes_total_sum, file_name=f"sos_total_sum_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_total_sum_{granularity}")
-                             except Exception as img_e: st.warning(f"Chyba PNG (Celk. Súčet): {img_e}.")
-                        else: st.warning("N/A dáta pre graf celk. objemu (súčet).")
-                    except Exception as e: st.error(f"Chyba pri generovaní grafu celk. objemu (súčet): {e}")
+                        if not merged_df_plot.empty:
+                            unique_periods = sorted(merged_df_plot[period_col_name].unique(), key=period_sort_key)
+                            fig_bar_share = px.bar(merged_df_plot, x=period_col_name, y='Share_Percent', color='Keyword', text='Share_Percent', barmode='stack', labels={'Share_Percent': '% Podiel', 'Keyword': 'Značka', period_col_name: granularity_label}, title="Share of Search (Podiel %)", category_orders={"Keyword": keyword_order_list, period_col_name: unique_periods})
+                            fig_bar_share.update_layout(yaxis_title='% celkového objemu vyhľadávania', yaxis_ticksuffix="%", xaxis_type='category', legend_title_text='Značky', height=800)
+                            # ===== ZMENA: Zväčšené písmo v baroch =====
+                            fig_bar_share.update_traces(texttemplate='%{text:.1f}%', textposition='inside', insidetextanchor='middle', textfont_size=12)
+                            st.plotly_chart(fig_bar_share, use_container_width=True)
+                            try:
+                                img_bytes_bar = fig_bar_share.to_image(format="png", scale=3)
+                                st.download_button(label="📥 Stiahnuť Graf Podielu (PNG)", data=img_bytes_bar, file_name=f"sos_share_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_share_{granularity}")
+                            except Exception as img_e:
+                                st.warning(f"Chyba pri exporte PNG grafu Podielu: {img_e}. Skontrolujte 'kaleido' inštaláciu.")
+                        elif not current_error: # Ak nebola chyba API, ale proste nemáme dáta pre graf
+                             st.warning(f"Nenašli sa žiadne dáta na zobrazenie {granularity.lower()} grafu podielu (celkový objem bol 0).")
+                    except Exception as e:
+                         st.error(f"Chyba pri generovaní {granularity.lower()} grafu podielu: {e}"); st.exception(e)
 
-                    # --- Graf: Celkový PRIEMERNÝ objem segmentu ---
-                    st.subheader(f"📉 Priemerný mesačný objem segmentu")
-                    try:
-                        if not total_period_volume_avg_df.empty and total_period_volume_avg_df['Average Total Volume'].sum() > 0:
-                            unique_periods_avg_total = sorted(total_period_volume_avg_df[period_col_name].unique(), key=period_sort_key)
-                            fig_avg_total_volume = px.bar(total_period_volume_avg_df, x=period_col_name, y='Average Total Volume', labels={'Average Total Volume': 'Priem. mesačný objem', period_col_name: granularity_label}, title=f"Priemerný mesačný objem segmentu", category_orders={period_col_name: unique_periods_avg_total})
-                            fig_avg_total_volume.update_layout(yaxis_title='Priemerný mesačný objem (AVG)', xaxis_type='category', height=550)
-                            fig_avg_total_volume.update_traces(texttemplate='%{y:,.0f}', textposition='outside')
-                            st.plotly_chart(fig_avg_total_volume, use_container_width=True)
-                            try: img_bytes_avg_total = fig_avg_total_volume.to_image(format="png", scale=3); st.download_button(label="📥 Stiahnuť Graf Priem. Obj. Segmentu", data=img_bytes_avg_total, file_name=f"sos_avg_segment_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_avg_segment_{granularity}")
-                            except Exception as img_e: st.warning(f"Chyba PNG (Priem. Seg.): {img_e}.")
-                        else: st.warning("N/A dáta pre graf priem. objemu segmentu.")
-                    except Exception as e: st.error(f"Chyba pri generovaní grafu priem. objemu segmentu: {e}")
+                    st.markdown("---")
+                    st.header(f"Detailné analýzy ({granularity})")
 
-                    # --- Graf: SUMÁRNY objem jednotlivých konkurentov ---
-                    st.subheader(f"💹 Súhrnný objem konkurentov")
-                    try:
-                         if not period_volume_sum_df.empty:
-                              unique_periods_sum_comp = sorted(period_volume_sum_df[period_col_name].unique(), key=period_sort_key)
-                              fig_line_sum_volume = px.line( period_volume_sum_df, x=period_col_name, y='Search Volume', color='Keyword', labels={'Search Volume': f'{granularity} objem (súčet)', 'Keyword': 'Značka', period_col_name: granularity_label}, title=f"{granularity} vývoj objemu (súčet)", category_orders={"Keyword": keyword_order_list, period_col_name: unique_periods_sum_comp}, markers=True )
-                              fig_line_sum_volume.update_layout(yaxis_title=f'{granularity} objem (Súčet)', legend_title_text='Značky', height=700)
-                              fig_line_sum_volume.update_traces(mode="markers+lines", hovertemplate="<b>%{fullData.name}</b><br>Perióda: %{x}<br>Objem (súčet): %{y:,.0f}<extra></extra>")
-                              st.plotly_chart(fig_line_sum_volume, use_container_width=True)
-                              try: img_bytes_sum_comp = fig_line_sum_volume.to_image(format="png", scale=3); st.download_button(label="📥 Stiahnuť Graf Súhrn. Obj. Konkurentov", data=img_bytes_sum_comp, file_name=f"sos_sum_competitor_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_sum_comp_{granularity}")
-                              except Exception as img_e: st.warning(f"Chyba PNG (Súhrn. Konk.): {img_e}.")
-                         else: st.warning("N/A dáta pre graf súhrn. objemu konkurentov.")
-                    except Exception as e: st.error(f"Chyba pri generovaní grafu objemu konkurentov (súčet): {e}")
+                    # Zobrazujeme detailné grafy iba ak máme nejaké dáta v sumárnom DF
+                    if not period_volume_sum_df.empty:
 
-                    # --- Graf: PRIEMERNÝ objem jednotlivých konkurentov ---
-                    st.subheader(f"📉 Priemerný mesačný objem konkurentov")
-                    try:
-                         if not period_volume_avg_df.empty:
-                              unique_periods_avg_comp = sorted(period_volume_avg_df[period_col_name].unique(), key=period_sort_key)
-                              fig_line_avg_volume = px.line( period_volume_avg_df, x=period_col_name, y='Average Search Volume', color='Keyword', labels={'Average Search Volume': f'Priem. mesačný objem', 'Keyword': 'Značka', period_col_name: granularity_label}, title=f"{granularity} vývoj priemerného mesačného objemu", category_orders={"Keyword": keyword_order_list, period_col_name: unique_periods_avg_comp}, markers=True )
-                              fig_line_avg_volume.update_layout(yaxis_title=f'Priem. mesačný objem (AVG)', legend_title_text='Značky', height=700)
-                              fig_line_avg_volume.update_traces(mode="markers+lines", hovertemplate="<b>%{fullData.name}</b><br>Perióda: %{x}<br>Priem. objem: %{y:,.0f}<extra></extra>")
-                              st.plotly_chart(fig_line_avg_volume, use_container_width=True)
-                              try: img_bytes_avg_comp = fig_line_avg_volume.to_image(format="png", scale=3); st.download_button(label="📥 Stiahnuť Graf Priem. Obj. Konkurentov", data=img_bytes_avg_comp, file_name=f"sos_avg_competitor_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_avg_comp_{granularity}")
-                              except Exception as img_e: st.warning(f"Chyba PNG (Priem. Konk.): {img_e}.")
-                         else: st.warning("N/A dáta pre graf priem. objemu konkurentov.")
-                    except Exception as e: st.error(f"Chyba pri generovaní grafu priem. objemu konkurentov: {e}")
+                        # --- Graf: Celkový SUMÁRNY objem segmentu ---
+                        st.subheader(f"📈 Celkový objem segmentu")
+                        try:
+                            if not total_period_volume_sum_df.empty and total_period_volume_sum_df['Total Volume'].sum() > 0:
+                                 unique_periods_sum_total = sorted(total_period_volume_sum_df[period_col_name].unique(), key=period_sort_key)
+                                 fig_total_sum_volume = px.bar(total_period_volume_sum_df, x=period_col_name, y='Total Volume', labels={'Total Volume': 'Celkový objem', period_col_name: granularity_label}, title=f"Celkový objem segmentu ({granularity.lower()}) - Súčet", category_orders={period_col_name: unique_periods_sum_total})
+                                 fig_total_sum_volume.update_layout(yaxis_title='Celkový objem vyhľadávania (Súčet)', xaxis_type='category', height=550)
+                                 fig_total_sum_volume.update_traces(texttemplate='%{y:,.0f}', textposition='outside')
+                                 st.plotly_chart(fig_total_sum_volume, use_container_width=True)
+                                 try:
+                                     img_bytes_total_sum = fig_total_sum_volume.to_image(format="png", scale=3)
+                                     st.download_button(label="📥 Stiahnuť Graf Celk. Obj. (Súčet)", data=img_bytes_total_sum, file_name=f"sos_total_sum_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_total_sum_{granularity}")
+                                 except Exception as img_e: st.warning(f"Chyba PNG (Celk. Súčet): {img_e}.")
+                            else: st.warning("N/A dáta pre graf celk. objemu (súčet).")
+                        except Exception as e: st.error(f"Chyba pri generovaní grafu celk. objemu (súčet): {e}")
 
-                    # --- Vizualizácia Rastov ---
-                    st.subheader(f"🚀 Tempo rastu ({granularity})")
-                    st.markdown(f"##### Medziobdobový rast (%)") # H5 nadpis
-                    try:
-                         # Potrebujeme aspoň 2 periódy na výpočet rastu
-                         if len(period_volume_sum_df[period_col_name].unique()) > 1:
-                              # Sort by period first (using the key), then keyword
-                              period_growth_df = period_volume_sum_df.copy()
-                              period_growth_df['SortKey'] = period_growth_df[period_col_name].apply(period_sort_key)
-                              period_growth_df = period_growth_df.sort_values(by=['SortKey', 'Keyword']).drop(columns=['SortKey'])
+                        # --- Graf: Celkový PRIEMERNÝ objem segmentu ---
+                        st.subheader(f"📉 Priemerný mesačný objem segmentu")
+                        try:
+                            if not total_period_volume_avg_df.empty and total_period_volume_avg_df['Average Total Volume'].sum() > 0:
+                                unique_periods_avg_total = sorted(total_period_volume_avg_df[period_col_name].unique(), key=period_sort_key)
+                                fig_avg_total_volume = px.bar(total_period_volume_avg_df, x=period_col_name, y='Average Total Volume', labels={'Average Total Volume': 'Priem. mesačný objem', period_col_name: granularity_label}, title=f"Priemerný mesačný objem segmentu", category_orders={period_col_name: unique_periods_avg_total})
+                                fig_avg_total_volume.update_layout(yaxis_title='Priemerný mesačný objem (AVG)', xaxis_type='category', height=550)
+                                fig_avg_total_volume.update_traces(texttemplate='%{y:,.0f}', textposition='outside')
+                                st.plotly_chart(fig_avg_total_volume, use_container_width=True)
+                                try:
+                                    img_bytes_avg_total = fig_avg_total_volume.to_image(format="png", scale=3)
+                                    st.download_button(label="📥 Stiahnuť Graf Priem. Obj. Segmentu", data=img_bytes_avg_total, file_name=f"sos_avg_segment_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_avg_segment_{granularity}")
+                                except Exception as img_e: st.warning(f"Chyba PNG (Priem. Seg.): {img_e}.")
+                            else: st.warning("N/A dáta pre graf priem. objemu segmentu.")
+                        except Exception as e: st.error(f"Chyba pri generovaní grafu priem. objemu segmentu: {e}")
 
-                              period_growth_df['Prev Volume'] = period_growth_df.groupby('Keyword')['Search Volume'].shift(1)
-                              mask_growth = (period_growth_df['Prev Volume'] > 0) & (pd.notna(period_growth_df['Prev Volume']))
-                              period_growth_df['Period Growth (%)'] = np.nan
-                              period_growth_df.loc[mask_growth, 'Period Growth (%)'] = ((period_growth_df['Search Volume'] - period_growth_df['Prev Volume']) / period_growth_df['Prev Volume']) * 100
+                        # --- Graf: SUMÁRNY objem jednotlivých konkurentov ---
+                        st.subheader(f"💹 Súhrnný objem konkurentov")
+                        try:
+                             if not period_volume_sum_df.empty:
+                                  unique_periods_sum_comp = sorted(period_volume_sum_df[period_col_name].unique(), key=period_sort_key)
+                                  fig_line_sum_volume = px.line( period_volume_sum_df, x=period_col_name, y='Search Volume', color='Keyword', labels={'Search Volume': f'{granularity} objem (súčet)', 'Keyword': 'Značka', period_col_name: granularity_label}, title=f"{granularity} vývoj objemu (súčet)", category_orders={"Keyword": keyword_order_list, period_col_name: unique_periods_sum_comp}, markers=True )
+                                  fig_line_sum_volume.update_layout(yaxis_title=f'{granularity} objem (Súčet)', legend_title_text='Značky', height=700)
+                                  fig_line_sum_volume.update_traces(mode="markers+lines", hovertemplate="<b>%{fullData.name}</b><br>Perióda: %{x}<br>Objem (súčet): %{y:,.0f}<extra></extra>")
+                                  st.plotly_chart(fig_line_sum_volume, use_container_width=True)
+                                  try:
+                                      img_bytes_sum_comp = fig_line_sum_volume.to_image(format="png", scale=3)
+                                      st.download_button(label="📥 Stiahnuť Graf Súhrn. Obj. Konkurentov", data=img_bytes_sum_comp, file_name=f"sos_sum_competitor_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_sum_comp_{granularity}")
+                                  except Exception as img_e: st.warning(f"Chyba PNG (Súhrn. Konk.): {img_e}.")
+                             else: st.warning("N/A dáta pre graf súhrn. objemu konkurentov.")
+                        except Exception as e: st.error(f"Chyba pri generovaní grafu objemu konkurentov (súčet): {e}")
 
-                              # Handle cases where previous volume was 0 or NaN, but current is > 0 (infinite growth)
-                              mask_inf = (period_growth_df['Prev Volume'] == 0) & (period_growth_df['Search Volume'] > 0) & (pd.notna(period_growth_df['Prev Volume']))
-                              period_growth_df.loc[mask_inf, 'Period Growth (%)'] = np.inf
+                        # --- Graf: PRIEMERNÝ objem jednotlivých konkurentov ---
+                        st.subheader(f"📉 Priemerný mesačný objem konkurentov")
+                        try:
+                             if not period_volume_avg_df.empty:
+                                  unique_periods_avg_comp = sorted(period_volume_avg_df[period_col_name].unique(), key=period_sort_key)
+                                  fig_line_avg_volume = px.line( period_volume_avg_df, x=period_col_name, y='Average Search Volume', color='Keyword', labels={'Average Search Volume': f'Priem. mesačný objem', 'Keyword': 'Značka', period_col_name: granularity_label}, title=f"{granularity} vývoj priemerného mesačného objemu", category_orders={"Keyword": keyword_order_list, period_col_name: unique_periods_avg_comp}, markers=True )
+                                  fig_line_avg_volume.update_layout(yaxis_title=f'Priem. mesačný objem (AVG)', legend_title_text='Značky', height=700)
+                                  fig_line_avg_volume.update_traces(mode="markers+lines", hovertemplate="<b>%{fullData.name}</b><br>Perióda: %{x}<br>Priem. objem: %{y:,.0f}<extra></extra>")
+                                  st.plotly_chart(fig_line_avg_volume, use_container_width=True)
+                                  try:
+                                      img_bytes_avg_comp = fig_line_avg_volume.to_image(format="png", scale=3)
+                                      st.download_button(label="📥 Stiahnuť Graf Priem. Obj. Konkurentov", data=img_bytes_avg_comp, file_name=f"sos_avg_competitor_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_avg_comp_{granularity}")
+                                  except Exception as img_e: st.warning(f"Chyba PNG (Priem. Konk.): {img_e}.")
+                             else: st.warning("N/A dáta pre graf priem. objemu konkurentov.")
+                        except Exception as e: st.error(f"Chyba pri generovaní grafu priem. objemu konkurentov: {e}")
 
-                              # Handle cases where volume drops to 0 from > 0 (-100% growth) - already covered by calculation
-                              # Handle cases where both prev and current are 0 (NaN growth) - already handled by NaN default
+                        # --- Vizualizácia Rastov ---
+                        st.subheader(f"🚀 Tempo rastu ({granularity})")
+                        st.markdown(f"##### Medziobdobový rast (%)") # H5 nadpis
+                        try:
+                            # Potrebujeme aspoň 2 periódy na výpočet rastu
+                            unique_period_values = period_volume_sum_df[period_col_name].unique()
+                            if len(unique_period_values) > 1:
+                                # Sort by period first (using the key), then keyword
+                                period_growth_df = period_volume_sum_df.copy()
+                                # Aplikujeme sort key bezpečne
+                                try:
+                                    period_growth_df['SortKey'] = period_growth_df[period_col_name].apply(period_sort_key)
+                                except Exception: # Fallback if sort key fails (e.g., unexpected format)
+                                    period_growth_df['SortKey'] = period_growth_df[period_col_name]
+                                period_growth_df = period_growth_df.sort_values(by=['SortKey', 'Keyword']).drop(columns=['SortKey'])
 
-                              # Prepare data for pivot (replace inf for calculation if needed, though pivot should handle it)
-                              period_growth_pivot_data = period_growth_df.copy()
+                                period_growth_df['Prev Volume'] = period_growth_df.groupby('Keyword')['Search Volume'].shift(1)
+                                period_growth_df['Period Growth (%)'] = np.nan # Initialize column
 
-                              # Create pivot table
-                              heatmap_data = period_growth_pivot_data.pivot(index='Keyword', columns=period_col_name, values='Period Growth (%)')
+                                # Calculate growth where previous volume > 0
+                                mask_growth = (period_growth_df['Prev Volume'] > 0) & (pd.notna(period_growth_df['Prev Volume']))
+                                period_growth_df.loc[mask_growth, 'Period Growth (%)'] = ((period_growth_df['Search Volume'] - period_growth_df['Prev Volume']) / period_growth_df['Prev Volume']) * 100
 
-                              # Reindex rows based on overall volume and drop rows with all NaNs (keywords without growth data)
-                              if keyword_order_list: heatmap_data = heatmap_data.reindex(index=keyword_order_list)
-                              heatmap_data = heatmap_data.dropna(how='all', axis=0)
+                                # Handle infinite growth (0 to positive)
+                                mask_inf = (period_growth_df['Prev Volume'] == 0) & (period_growth_df['Search Volume'] > 0) & (pd.notna(period_growth_df['Prev Volume']))
+                                period_growth_df.loc[mask_inf, 'Period Growth (%)'] = np.inf
 
-                              # Reindex columns based on period sort key
-                              sorted_periods = sorted(heatmap_data.columns, key=period_sort_key)
-                              heatmap_data = heatmap_data[sorted_periods]
+                                # Handle 0% growth (0 to 0) or NaN to something - keep as NaN or handle as needed
+                                # Handle -100% growth (positive to 0) - already handled by calculation if Prev Volume > 0
 
-                              if not heatmap_data.empty:
-                                   # Prepare text labels: format numbers, show 'Inf%', handle NaN
-                                   def format_growth(val):
+                                # Prepare data for pivot
+                                period_growth_pivot_data = period_growth_df.copy()
+
+                                # Create pivot table
+                                heatmap_data = period_growth_pivot_data.pivot(index='Keyword', columns=period_col_name, values='Period Growth (%)')
+
+                                # Reindex rows based on overall volume and drop rows with all NaNs
+                                if keyword_order_list: heatmap_data = heatmap_data.reindex(index=keyword_order_list)
+                                heatmap_data = heatmap_data.dropna(how='all', axis=0)
+
+                                # Reindex columns based on period sort key safely
+                                try:
+                                    sorted_periods = sorted(heatmap_data.columns, key=period_sort_key)
+                                except Exception: # Fallback sorting if key fails
+                                    sorted_periods = sorted(heatmap_data.columns)
+                                heatmap_data = heatmap_data[sorted_periods]
+
+                                if not heatmap_data.empty:
+                                    # Prepare text labels: format numbers, show 'Inf%', handle NaN
+                                    def format_growth(val):
                                         if pd.isna(val): return '-'
                                         if val == np.inf: return 'Inf%'
-                                        if val == -np.inf: return '-Inf%' # Should not happen with volume >= 0
+                                        if val == -np.inf: return '-Inf%' # Should not happen
                                         return f"{val:.0f}%"
-                                   text_labels = heatmap_data.applymap(format_growth).values
+                                    text_labels = heatmap_data.applymap(format_growth).values
 
-                                   # Prepare data for heatmap color scale: replace Inf/NaN with large/small numbers or map NaN to midpoint color
-                                   # Let's cap the color scale for better visualization, e.g., -100% to +200%
-                                   # Values outside this range will get the min/max color. NaN will be greyish.
-                                   # Plotly imshow handles NaN by default (often grey)
-                                   heatmap_display_data = heatmap_data.copy() # Use original data with NaN/Inf for display logic
+                                    # Prepare data for heatmap color scale
+                                    heatmap_display_data = heatmap_data.copy()
 
-                                   # Define color scale range
-                                   color_min = -100
-                                   color_max = 200
-                                   color_mid = 0
+                                    # Define color scale range
+                                    color_min = -100
+                                    color_max = 200
+                                    color_mid = 0
 
-                                   fig_heatmap = px.imshow( heatmap_display_data,
-                                                            labels=dict(x=granularity_label, y="Značka", color="Rast (%)"),
-                                                            title=f"Medziobdobový rast (%) - {granularity.lower()}",
-                                                            text_auto=False, # We provide custom text
-                                                            aspect="auto",
-                                                            color_continuous_scale='RdYlGn', # Red-Yellow-Green
-                                                            color_continuous_midpoint=color_mid,
-                                                            range_color=[color_min, color_max] # Cap the color scale
-                                                           )
-                                   fig_heatmap.update_traces(
-                                       text=text_labels, # Use formatted labels
-                                       texttemplate="%{text}", # Display them as they are
-                                       # Tooltip shows the actual numeric value (or NaN/Inf)
-                                       hovertemplate="<b>%{y}</b><br>%{x}<br>Rast: %{customdata:.0f}%<extra></extra>",
-                                       customdata=heatmap_data # Pass original data for hover
-                                   )
-                                   fig_heatmap.update_xaxes(side="bottom"); fig_heatmap.update_layout(height=max(450, len(heatmap_data.index)*40))
-                                   st.plotly_chart(fig_heatmap, use_container_width=True)
-                                   try: img_bytes_heatmap = fig_heatmap.to_image(format="png", scale=3); st.download_button(label="📥 Stiahnuť Heatmapu Rastu", data=img_bytes_heatmap, file_name=f"sos_growth_heatmap_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_heatmap_{granularity}")
-                                   except Exception as img_e: st.warning(f"Chyba PNG (Heatmap): {img_e}.")
-                              else: st.info("Nebolo možné vypočítať alebo zobraziť medziobdobový rast (žiadne dáta po filtrovaní alebo len jedna perióda).")
-                         else: st.info("Pre výpočet medziobdobového rastu sú potrebné aspoň dve časové periódy.")
-                    except Exception as e: st.error(f"Chyba pri generovaní heatmapy rastu: {e}"); st.exception(e)
+                                    fig_heatmap = px.imshow( heatmap_display_data,
+                                                             labels=dict(x=granularity_label, y="Značka", color="Rast (%)"),
+                                                             title=f"Medziobdobový rast (%) - {granularity.lower()}",
+                                                             text_auto=False, # We provide custom text
+                                                             aspect="auto",
+                                                             color_continuous_scale='RdYlGn', # Red-Yellow-Green
+                                                             color_continuous_midpoint=color_mid,
+                                                             range_color=[color_min, color_max] # Cap the color scale
+                                                            )
+                                    # ===== ZMENA: Opravený hovertemplate a odstránený customdata =====
+                                    fig_heatmap.update_traces(
+                                        text=text_labels,
+                                        texttemplate="%{text}",
+                                        hovertemplate="<b>%{y}</b><br>%{x}<br>Rast: %{z:.0f}%<extra></extra>"
+                                    )
+                                    fig_heatmap.update_xaxes(side="bottom")
+                                    fig_heatmap.update_layout(height=max(450, len(heatmap_data.index)*40))
+                                    st.plotly_chart(fig_heatmap, use_container_width=True)
+                                    try:
+                                        img_bytes_heatmap = fig_heatmap.to_image(format="png", scale=3)
+                                        st.download_button(label="📥 Stiahnuť Heatmapu Rastu", data=img_bytes_heatmap, file_name=f"sos_growth_heatmap_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_heatmap_{granularity}")
+                                    except Exception as img_e: st.warning(f"Chyba PNG (Heatmap): {img_e}.")
+                                else:
+                                    st.info("Nebolo možné vypočítať alebo zobraziť medziobdobový rast (žiadne dáta po filtrovaní).")
+                            else:
+                                st.info("Pre výpočet medziobdobového rastu sú potrebné aspoň dve časové periódy.")
+                        except Exception as e:
+                            st.error(f"Chyba pri generovaní heatmapy rastu: {e}"); st.exception(e)
 
-                else: # Ak agregácia vrátila prázdny period_volume_sum_df
-                    st.warning(f"Neboli nájdené žiadne agregované dáta pre granularitu '{granularity}' na zobrazenie detailných analýz.")
+                    else: # Ak agregácia vrátila prázdny period_volume_sum_df
+                        st.warning(f"Neboli nájdené žiadne agregované dáta pre granularitu '{granularity}' na zobrazenie detailných analýz.")
 
-                st.markdown("---")
-                # --- Pôvodná Tabuľka Mesačných Dát a CSV Download ---
-                st.subheader("📚 Tabuľka pôvodných dát (Mesačne)")
-                try:
-                    if 'history_df_raw' in locals() and not history_df_raw.empty:
-                         history_df_display = history_df_raw.copy(); history_df_display['Date'] = history_df_display['Date'].dt.strftime('%Y-%m')
-                         st.dataframe(history_df_display[['Keyword', 'Date', 'Search Volume']].sort_values(by=['Keyword', 'Date']).reset_index(drop=True), height=300, use_container_width=True)
-                    else: st.warning("Pôvodné mesačné dáta neboli nájdené alebo spracované.")
-                except Exception as e: st.error(f"Chyba pri zobrazovaní tabuľky: {e}")
+                    st.markdown("---")
+                    # --- Pôvodná Tabuľka Mesačných Dát a CSV Download ---
+                    st.subheader("📚 Tabuľka pôvodných dát (Mesačne)")
+                    try:
+                        if 'history_df_raw' in locals() and not history_df_raw.empty:
+                             history_df_display = history_df_raw.copy(); history_df_display['Date'] = history_df_display['Date'].dt.strftime('%Y-%m')
+                             st.dataframe(history_df_display[['Keyword', 'Date', 'Search Volume']].sort_values(by=['Keyword', 'Date']).reset_index(drop=True), height=300, use_container_width=True)
+                        else:
+                            # Zobrazíme túto správu len ak nebola chyba a dáta boli None alebo []
+                            if not current_error:
+                                st.warning("Pôvodné mesačné dáta neboli nájdené alebo spracované.")
+                    except Exception as e: st.error(f"Chyba pri zobrazovaní tabuľky: {e}")
 
-                st.subheader("📥 Stiahnuť dáta (Mesačne)")
-                try:
-                     if 'history_df_raw' in locals() and not history_df_raw.empty:
-                          @st.cache_data # Cachovanie konverzie do CSV
-                          def convert_df_to_csv(df): return df[['Keyword', 'Date', 'Search Volume']].sort_values(by=['Keyword','Date']).to_csv(index=False).encode('utf-8')
-                          csv_data = convert_df_to_csv(history_df_raw); st.download_button(label="Stiahnuť mesačné dáta ako CSV", data=csv_data, file_name=f'dataforseo_monthly_history_{selected_location_code}_{selected_language_code}.csv', mime='text/csv', key="download_csv")
-                     else: st.warning("Žiadne dáta na stiahnutie.")
-                except Exception as e: st.error(f"Chyba pri príprave CSV na stiahnutie: {e}")
+                    st.subheader("📥 Stiahnuť dáta (Mesačne)")
+                    try:
+                         if 'history_df_raw' in locals() and not history_df_raw.empty:
+                              @st.cache_data # Cachovanie konverzie do CSV
+                              def convert_df_to_csv(df):
+                                  # Zoradíme pred exportom
+                                  df_sorted = df[['Keyword', 'Date', 'Search Volume']].sort_values(by=['Keyword','Date'])
+                                  return df_sorted.to_csv(index=False).encode('utf-8')
 
-        # Prípad, kedy API nevrátilo dáta, ale ani explicitnú chybu (z cache alebo priame volanie)
-        elif current_error is None and not current_data:
-             st.warning("🤔 API nevrátilo žiadne výsledky pre zadané kritériá.")
+                              csv_data = convert_df_to_csv(history_df_raw)
+                              st.download_button(label="Stiahnuť mesačné dáta ako CSV", data=csv_data, file_name=f'dataforseo_monthly_history_{selected_location_code}_{selected_language_code}.csv', mime='text/csv', key="download_csv")
+                         else:
+                             if not current_error:
+                                 st.warning("Žiadne dáta na stiahnutie.")
+                    except Exception as e: st.error(f"Chyba pri príprave CSV na stiahnutie: {e}")
+
+        # Prípad, kedy API nevrátilo dáta (current_data je None), ale ani explicitnú chybu (z cache alebo priame volanie)
+        # Táto časť by sa už nemala dostať k slovu vďaka kontrole current_data is not None vyššie
+        # elif current_error is None and current_data is None:
+        #      st.warning("🤔 API nevrátilo žiadne výsledky pre zadané kritériá.")
 
     # Ak ešte nebol stlačený gombík a nie je nič v cache pre tento kľúč
     elif session_key not in st.session_state and not run_button_disabled: # Pridaná kontrola disabled stavu
@@ -551,7 +617,7 @@ if authenticated:
     elif run_button_disabled and (dataforseo_api_login and dataforseo_api_password): # Ak sú API kľúče OK, ale chýba lokácia/jazyk
         st.warning("⚠️ Vyberte prosím Lokáciu a Jazyk pre pokračovanie.")
 
-
-# Zobrazí sa iba ak PIN nie je zadaný alebo je nesprávny (a už sme zobrazili výzvu/chybu vyššie)
+# Tento blok už nie je potrebný, pretože stav overenia rieši st.session_state a st.stop()
 # else:
-#    pass # Už sme zobrazili info/error správu v bloku overenia PINu
+#     # Zobrazí sa iba ak PIN nie je zadaný alebo je nesprávny
+#     pass
