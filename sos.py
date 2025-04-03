@@ -368,7 +368,7 @@ if authenticated:
                         unique_periods = sorted(merged_df_plot[period_col_name].unique(), key=period_sort_key)
                         fig_bar_share = px.bar(merged_df_plot, x=period_col_name, y='Share_Percent', color='Keyword', text='Share_Percent', barmode='stack', labels={'Share_Percent': '% Podiel', 'Keyword': 'Značka', period_col_name: granularity_label}, title="Share of Search (Podiel %)", category_orders={"Keyword": keyword_order_list, period_col_name: unique_periods})
                         fig_bar_share.update_layout(yaxis_title='% celkového objemu vyhľadávania', yaxis_ticksuffix="%", xaxis_type='category', legend_title_text='Značky', height=800)
-                        fig_bar_share.update_traces(texttemplate='%{text:.1f}%', textposition='inside', insidetextanchor='middle', textfont_size=9)
+                        fig_bar_share.update_traces(texttemplate='%{text:.1f}%', textposition='inside', insidetextanchor='middle', textfont_size=12)
                         st.plotly_chart(fig_bar_share, use_container_width=True)
                         try: img_bytes_bar = fig_bar_share.to_image(format="png", scale=3); st.download_button(label="📥 Stiahnuť Graf Podielu (PNG)", data=img_bytes_bar, file_name=f"sos_share_{selected_location_code}_{selected_language_code}_{granularity}.png", mime="image/png", key=f"download_share_{granularity}")
                         except Exception as img_e: st.warning(f"Chyba pri exporte PNG grafu Podielu: {img_e}. Skontrolujte 'kaleido' inštaláciu.")
