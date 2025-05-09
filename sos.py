@@ -603,6 +603,80 @@ if st.session_state.authenticated:
                              if not current_error:
                                  st.warning("Žiadne dáta na stiahnutie.")
                     except Exception as e: st.error(f"Chyba pri príprave CSV na stiahnutie: {e}")
+                    
+                    # --- NOVÁ SEKCIA: História requestov ---
+                    st.markdown("---")
+                    st.subheader("🕒 História vyhľadávaní")
+                    
+                    # Inicializácia zoznamu histórie v session_state, ak neexistuje
+                    if 'search_history' not in st.session_state:
+                        st.session_state.search_history = []
+                    
+                    # Pridaj aktuálny request do histórie len ak obsahuje dáta a ešte tam nie je
+                    current_request_info = {
+                        'keywords': keywords_list,
+                        'location': selected_location_display,
+                        'location_code': selected_location_code,
+                        'language': selected_language_display,
+                        'language_code': selected_language_code,
+                        'date_from': date_from_input,
+                        'date_to': date_to_input,
+                        'granularity': granularity,
+                        'session_key': session_key,
+                        'timestamp': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                    
+                    # Kontrola či záznam už existuje v histórii pred pridaním
+                    request_exists = False
+                    for hist_item in st.session_state.search_history:
+                        if hist_item['session_key'] == session_key:
+                            request_exists = True
+                            break
+                    
+                    if not request_exists and current_data is not None:
+                        st.session_state.search_history.append(current_request_info)
+                    
+                    # Zobraziť históriu v expanderi
+                    if st.session_state.search_history:
+                        with st.expander("📋 Zoznam predchádzajúcich vyhľadávaní", expanded=False):
+                            for i, hist_item in enumerate(reversed(st.session_state.search_history)):
+                                col1, col2, col3 = st.columns([3, 2, 1])
+                                
+                                with col1:
+                                    keywords_summary = ", ".join(hist_item['keywords'][:3])
+                                    if len(hist_item['keywords']) > 3:
+                                        keywords_summary += f" a ďalšie {len(hist_item['keywords'])-3}"
+                                    st.markdown(f"**Kľúčové slová:** {keywords_summary}")
+                                
+                                with col2:
+                                    st.markdown(f"**Lokácia:** {hist_item['location']}")
+                                    st.markdown(f"**Jazyk:** {hist_item['language']}")
+                                    st.markdown(f"**Obdobie:** {hist_item['date_from']} až {hist_item['date_to']}")
+                                
+                                with col3:
+                                    # Tlačidlo pre načítanie historického requestu
+                                    if st.button(f"Načítať", key=f"load_hist_{i}", help="Načítať tieto parametre a data"):
+                                        # Nastavenie parametrov vyhľadávania zo záznamu histórie
+                                        st.session_state.keywords_input = "\n".join(hist_item['keywords'])
+                                        # Nastavíme, aby sa po kliknutí načítali dáta zo session cache
+                                        st.experimental_set_query_params(
+                                            session_key=hist_item['session_key'],
+                                            restore_history=True,
+                                            granularity=hist_item['granularity']
+                                        )
+                                        st.rerun()
+                                
+                                st.markdown(f"*Čas vyhľadávania: {hist_item['timestamp']}*")
+                                if i < len(st.session_state.search_history) - 1:
+                                    st.markdown("---")
+                        
+                        # Tlačidlo pre vymazanie histórie
+                        if st.button("🗑️ Vymazať celú históriu vyhľadávaní"):
+                            st.session_state.search_history = []
+                            st.success("História vyhľadávaní bola vymazaná")
+                            st.rerun()
+                    else:
+                        st.info("Zatiaľ nemáte žiadne vyhľadávania v histórii.")
 
         # Prípad, kedy API nevrátilo dáta (current_data je None), ale ani explicitnú chybu (z cache alebo priame volanie)
         # Táto časť by sa už nemala dostať k slovu vďaka kontrole current_data is not None vyššie
