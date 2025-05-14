@@ -1,6 +1,6 @@
 # Share of Search Tool 📊📈
 
-Jednoduchá [Streamlit](https://streamlit.io/) aplikácia na vizualizáciu a analýzu "Share of Search" (podielu vyhľadávania) pre zadané kľúčové slová pomocou dát z [DataForSEO API](https://dataforseo.com/). Aplikácia bola vytvorená s pomocou Google Gemini.
+Jednoduchá [Streamlit](https://streamlit.io/) aplikácia na vizualizáciu a analýzu "Share of Search" (podielu vyhľadávania) pre zadané kľúčové slová pomocou dát z [DataForSEO API](https://dataforseo.com/). Aplikácia bola vytvorená s pomocou Google Gemini Pro.
 
 ## Funkcie
 
@@ -8,33 +8,35 @@ Aplikácia ponúka dva hlavné režimy analýzy:
 
 **1. Analýza jednej krajiny:**
 * **Získavanie dát:** Načíta historické mesačné objemy vyhľadávania pre zadané kľúčové slová, vybranú krajinu a jazyk z DataForSEO Google Ads Search Volume API.
-* **Vizualizácia podielu (SoS):** Zobrazí vývoj podielu jednotlivých kľúčových slov na celkovom objeme vyhľadávania v čase (ročná, štvrťročná alebo mesačná granularita).
-* **Analýza objemu:**
-    * Zobrazí graf priemerného mesačného objemu celého segmentu (súčet všetkých kľúčových slov).
-    * Zobrazí graf priemerného mesačného objemu pre jednotlivé kľúčové slová s interaktívnou legendou.
-* **Analýza rastu:** Vypočíta a zobrazí medziobdobový percentuálny rast pre jednotlivé kľúčové slová vo forme heatmapy.
-* **História vyhľadávaní:** Ukladá a umožňuje znovu načítať predchádzajúce vyhľadávania pre tento režim.
-* **Export dát:** Umožňuje stiahnuť pôvodné mesačné dáta (agregované podľa kľúčového slova a mesiaca) ako CSV.
+* **Prednastavené hodnoty:** Aplikácia má prednastavené kľúčové slová (isadore, castelli, rapha, maap, pas normal studios, van rysel), krajinu (Slovensko) a jazyk (slovenčina) pre rýchle spustenie.
+* **Grafy (očíslované):**
+    1.  **Podiel vyhľadávania (SoS %):** Skladaný stĺpcový graf zobrazujúci vývoj podielu jednotlivých kľúčových slov na celkovom objeme vyhľadávania v čase.
+    2.  **Priemerný mesačný objem segmentu:** Stĺpcový graf zobrazujúci priemerný mesačný objem všetkých sledovaných kľúčových slov dohromady.
+    3.  **Priemerný mesačný objem konkurentov (Čiarový):** Čiarový graf zobrazujúci vývoj priemerného mesačného objemu pre každé kľúčové slovo zvlášť, s interaktívnou legendou pre filtrovanie značiek.
+    4.  **Priemerný mesačný objem konkurentov (Skladaný stĺpcový):** Alternatívne zobrazenie priemerných mesačných objemov konkurentov formou skladaného stĺpcového grafu.
+    5.  **Tempo rastu:** Heatmapa zobrazujúca medziobdobový percentuálny rast pre jednotlivé kľúčové slová.
+* **História vyhľadávaní (č. 6):** Ukladá a umožňuje znovu načítať predchádzajúce kombinácie filtrov pre tento režim.
+* **Export dát (č. 7):** Umožňuje stiahnuť pôvodné mesačné dáta (agregované podľa kľúčového slova a mesiaca) ako CSV.
 
 **2. Analýza viacerých krajín:**
-* **Získavanie dát pre viacero krajín:** Načíta historické mesačné objemy vyhľadávania pre zadané kľúčové slová a jeden spoločný jazyk naprieč viacerými vybranými krajinami.
-* **Prednastavené krajiny:** Ako východiskový bod sú predvolene vybrané Slovensko, Česko, Nemecko a Rakúsko (ak sú dostupné v API).
-* **Prehľadové grafy naprieč všetkými vybranými krajinami:**
-    * **Celkový Share of Search:** SoS (v %) pre každú značku, kde dáta sú agregované naprieč všetkými hlavnými vybranými krajinami.
-    * **Celkový priemerný objem vyhľadávania:** Priemerný objem pre každú značku, agregovaný naprieč všetkými hlavnými vybranými krajinami.
-* **Flexibilné grafy s vlastným výberom:**
-    * **Flexibilný SoS:** Používateľ si vyberie viacero značiek a podmnožinu krajín. Dáta (objemy) sa sčítajú naprieč touto podmnožinou krajín a následne sa počíta a vizualizuje SoS.
-    * **Flexibilný súhrnný objem:** Používateľ si vyberie viacero značiek a podmnožinu krajín. Dáta (objemy) sa sčítajú naprieč touto podmnožinou krajín a zobrazí sa tento súhrnný objem.
-    * **Priemerný mesačný objem segmentu (pre vlastný výber krajín):** Používateľ si vyberie podmnožinu krajín a graf zobrazí celkový priemerný mesačný objem všetkých sledovaných značiek dohromady pre túto skupinu krajín.
-* **História vyhľadávaní:** Ukladá a umožňuje znovu načítať predchádzajúce vyhľadávania pre tento režim.
-* **Export dát:** Umožňuje stiahnuť pôvodné mesačné dáta (s rozlíšením podľa krajiny) ako CSV.
+* **Získavanie dát pre viacero krajín:** Načíta historické mesačné objemy vyhľadávania pre zadané kľúčové slová a jeden spoločný jazyk naprieč viacerými vybranými krajinami (hlavný filter).
+* **Prednastavené hodnoty:** Predvolene sú vybrané krajiny Slovensko, Česko, Nemecko, Rakúsko a granularita nastavená na 'Ročne'.
+* **Informačné upozornenie:** Používateľ je informovaný o API limite (12 požiadaviek/minúta).
+* **Grafy (očíslované):**
+    1.  **Celkový Share of Search:** SoS (v %) pre každú značku, kde dáta sú agregované naprieč všetkými krajinami vybranými v hlavnom filtri.
+    2.  **Celkový priemerný objem vyhľadávania:** Priemerný objem pre každú značku, agregovaný naprieč všetkými krajinami vybranými v hlavnom filtri.
+    3.  **Flexibilný priemerný objem (Čiarový):** Používateľ si vyberie viacero značiek a podmnožinu krajín (z hlavného filtra). Dáta (objemy) pre každú značku sa sčítajú naprieč touto podmnožinou krajín a následne sa zobrazí priemerný objem pre každú značku ako časový rad.
+    4.  **Flexibilný priemerný objem (Skladaný stĺpcový):** Rovnaké dáta a filtre ako pre graf č. 3, ale zobrazené ako skladaný stĺpcový graf.
+    5.  **Priemerný mesačný objem segmentu (pre vlastný výber krajín):** Používateľ si vyberie podmnožinu krajín a graf zobrazí celkový priemerný mesačný objem všetkých sledovaných značiek dohromady pre túto skupinu krajín.
+* **História vyhľadávaní (č. 6):** Ukladá a umožňuje znovu načítať predchádzajúce kombinácie filtrov pre tento režim.
+* **Export dát (č. 7):** Umožňuje stiahnuť pôvodné mesačné dáta (s rozlíšením podľa krajiny) ako CSV.
 
 **Spoločné funkcie pre oba režimy:**
 * **Interaktívne rozhranie:** Umožňuje jednoduchý výber parametrov (režim analýzy, kľúčové slová, krajina/krajiny, jazyk, rozsah dátumov, granularita).
-* **Caching:** Využíva Streamlit cache pre API volania a spracovanie dát na zrýchlenie opakovaných požiadaviek.
+* **Caching:** Využíva Streamlit cache (`@st.cache_data`) pre API volania a spracovanie dát na zrýchlenie opakovaných požiadaviek.
 * **Export grafov:** Umožňuje stiahnutie vygenerovaných grafov ako PNG.
 * **Ochrana:** Vyžaduje zadanie PIN kódu pre prístup k aplikácii (konfigurovateľné cez Streamlit Secrets).
-* **Sidebar s informáciami:** Zobrazuje verziu aplikácie, copyright a odkazy na dokumentáciu.
+* **Sidebar s informáciami:** Zobrazuje verziu aplikácie (v1.5), copyright ([2025, Marek Šulik](https://mareksulik.sk)), informácie o tvorbe a odkazy na dokumentáciu.
 
 ## Požiadavky
 
@@ -59,55 +61,77 @@ Aplikácia ponúka dva hlavné režimy analýzy:
     password = "VAS_DATAFORSEO_HESLO"
 
     [app]
-    pin = "VAS_VOLITELNY_PIN" # Ak PIN nechcete, môžete tento riadok vynechať alebo nechať prázdny, ale potom upravte logiku v kóde.
+    pin = "VAS_VOLITELNY_PIN" # Ak PIN nechcete, tento riadok alebo celú sekciu [app] môžete vynechať.
     ```
 
     *Nahraďte `VAS_DATAFORSEO_LOGIN`, `VAS_DATAFORSEO_HESLO` a `VAS_VOLITELNY_PIN` vašimi skutočnými údajmi.*
 
 ## Použitie
 
-1.  **Naklonujte repozitár (ak ste tak ešte neurobili):**
-    ```bash
-    git clone [https://github.com/mareksulik/sos.git](https://github.com/mareksulik/sos.git) # Nahraďte správnou URL vášho repozitára
-    cd sos 
+1.  **Štruktúra projektu:** Uistite sa, že máte nasledujúcu adresárovú štruktúru (s prázdnymi `__init__.py` súbormi v podadresároch, aby fungovali importy):
     ```
-2.  **Vytvorte a aktivujte virtuálne prostredie (odporúčané):**
+    vas_projekt_adresar/
+    ├── sos.py                   # Hlavný súbor aplikácie (alebo streamlit_app.py)
+    ├── config.py               
+    ├── requirements.txt        
+    ├── api_client/
+    │   ├── __init__.py        
+    │   └── dataforseo_client.py 
+    ├── data_processing/
+    │   ├── __init__.py         
+    │   ├── fetcher.py          
+    │   └── transformer.py       
+    └── ui/
+        ├── __init__.py         
+        ├── sidebar.py           
+        ├── single_country_page.py 
+        ├── multi_country_page.py  
+        └── charts.py              
+    ```
+2.  **Naklonujte repozitár (ak relevantné):**
     ```bash
-    python -m venv venv
+    # git clone [URL_VASHO_REPOZITARA]
+    # cd [NAZOV_ADRESARA_PROJEKTU]
+    ```
+3.  **Vytvorte a aktivujte virtuálne prostredie (odporúčané):**
+    ```bash
+    python3 -m venv venv
     source venv/bin/activate  # Pre Linux/macOS
     # venv\Scripts\activate    # Pre Windows
     ```
-3.  **Nainštalujte závislosti:**
+4.  **Nainštalujte závislosti:**
     ```bash
     pip install -r requirements.txt
     ```
-4.  **Nastavte Streamlit Secrets:** Vytvorte súbor `.streamlit/secrets.toml` podľa popisu v sekcii Požiadavky.
-5.  **Spustite Streamlit aplikáciu (napr. ak sa váš súbor volá `sos_app.py`):**
+5.  **Nastavte Streamlit Secrets:** Vytvorte súbor `.streamlit/secrets.toml` podľa popisu vyššie.
+6.  **Spustite Streamlit aplikáciu (napr. ak sa váš hlavný súbor volá `sos.py`):**
     ```bash
-    streamlit run sos_app.py 
+    streamlit run sos.py
     ```
-6.  Otvorte aplikáciu vo vašom prehliadači (zvyčajne na `http://localhost:8501`).
-7.  Ak ste nastavili PIN, zadajte ho.
-8.  V postrannom paneli vyberte typ analýzy ("Analýza jednej krajiny" alebo "Analýza viacerých krajín").
-9.  Zadajte kľúčové slová (jedno na riadok), vyberte krajinu/krajiny, jazyk, rozsah dátumov a granularitu.
-10. Kliknite na tlačidlo "📊 Získať dáta a zobraziť grafy".
+7.  Otvorte aplikáciu vo vašom prehliadači (zvyčajne na `http://localhost:8501`).
+8.  Ak ste nastavili PIN, zadajte ho.
+9.  V postrannom paneli vyberte typ analýzy.
+10. Zadajte parametre a kliknite na tlačidlo "Získať dáta a zobraziť grafy".
 
-## Štruktúra kódu
+## Štruktúra kódu (Refaktorizovaná)
 
-* **Hlavné funkcie:**
-    * `load_locations`, `load_languages`: Načítanie a cachovanie zoznamu krajín a jazykov.
-    * `get_search_volume_live_with_history`: Získanie dát pre jednu krajinu.
-    * `get_multi_country_search_volume_history`: Získanie dát pre viacero krajín.
-    * `render_multi_country_page`: Logika a UI pre analýzu viacerých krajín.
-    * Hlavný blok kódu: UI pre analýzu jednej krajiny, PIN autentifikácia, sidebar a navigácia medzi režimami.
-* **Session State:** Intenzívne využitie `st.session_state` na uchovanie vstupov používateľa a výsledkov API volaní pre plynulejšiu interakciu a cachovanie v rámci session.
+* **`sos.py` (alebo `streamlit_app.py`):** Hlavný vstupný bod, PIN autentifikácia, volanie sidebaru a vykresľovacích funkcií pre jednotlivé stránky.
+* **`config.py`:** Globálne konštanty, prednastavené hodnoty, načítavanie `st.secrets`.
+* **`api_client/dataforseo_client.py`:** Nízkoúrovňová komunikácia s DataForSEO API (napr. `load_locations`, `load_languages`, `get_search_volume_for_task`).
+* **`data_processing/fetcher.py`:** Vyššia vrstva pre získavanie dát, cachovanie API odpovedí (napr. `Workspace_search_volume_data_single`, `Workspace_multi_country_search_volume_data`).
+* **`data_processing/transformer.py`:** Funkcie pre transformáciu a agregáciu dát (výpočty SoS, priemerov, rastu, príprava DataFrames pre grafy).
+* **`ui/sidebar.py`:** Funkcia pre vykreslenie obsahu postranného panela.
+* **`ui/single_country_page.py`:** Všetka UI logika a volania pre "Analýzu jednej krajiny".
+* **`ui/multi_country_page.py`:** Všetka UI logika a volania pre "Analýzu viacerých krajín".
+* **`ui/charts.py`:** Samostatné funkcie pre generovanie jednotlivých Plotly grafov.
+* **`st.session_state`:** Intenzívne sa využíva na uchovávanie stavu vstupov a načítaných dát pre plynulú interakciu.
 
 ## Možné vylepšenia
 
-* Rozdelenie rozsiahlej funkcie `render_multi_country_page` a hlavného bloku pre analýzu jednej krajiny do menších, lepšie manažovateľných funkcií.
 * Pridanie automatizovaných testov (napr. `pytest`).
-* Rozšírenie možností analýzy (napr. kĺzavé priemery, detekcia anomálií, porovnanie s konkurenčnými dátami, ak by boli dostupné).
+* Rozšírenie možností analýzy (napr. kĺzavé priemery, detekcia anomálií).
 * Pokročilejšie možnosti filtrovania a porovnávania v rámci flexibilných grafov.
-* Vylepšenie UI/UX, napr. dynamické zobrazenie/skrytie sekcií grafov.
-* Podrobnejšie spracovanie chýb a logovanie.
-* Možnosť ukladania a načítavania konfigurácií vyhľadávania.
+* Vylepšenie UI/UX, napr. dynamické zobrazenie/skrytie sekcií grafov na základe dostupnosti dát.
+* Podrobnejšie spracovanie chýb a logovanie na strane servera.
+* Možnosť ukladania a načítavania komplexných konfigurácií vyhľadávania.
+* Optimalizácia výkonu pri práci s veľmi veľkými datasetmi (aj keď cachovanie už pomáha).
