@@ -86,15 +86,13 @@ def create_mc_total_avg_volume_chart(df_total_avg_vol_mc, period_col, granularit
     fig.update_layout(yaxis_title='Priemerný objem vyhľadávania', legend_title_text='Značky', height=600)
     return fig
 
-# Funkcia create_mc_flexible_sos_chart bola odstránená, keďže sa graf 3 (Flex SoS) ruší
-
 def create_mc_flexible_avg_volume_chart(df_flex_avg_vol, period_col, granularity_str_for_sort, granularity_label_for_display, keyword_order, selected_countries_str):
-    """Graf 3 (Multi-Country): Flexibilný PRIEMERNÝ objem pre vybrané značky (Čiarový)."""
+    """Graf 3 (Multi-Country): Flexibilný PRIEMERNÝ objem pre vybrané ZNAČKY (Čiarový)."""
     if df_flex_avg_vol.empty or 'Average Search Volume' not in df_flex_avg_vol.columns or df_flex_avg_vol['Average Search Volume'].sum(skipna=True) <=0: 
         return None
-    title = f"3. Priemerný objem pre vybrané značky (krajiny sčítané: {selected_countries_str}) - Čiarový"
+    title = f"3. Priemerný objem pre vybrané ZNAČKY (krajiny sčítané: {selected_countries_str}) - Čiarový" # Upravený titulok pre jasnosť
     unique_periods = sorted(df_flex_avg_vol[period_col].unique(), key=get_period_sort_key_func(granularity_str_for_sort))
-    fig = px.line(df_flex_avg_vol, x=period_col, y='Average Search Volume', color='Keyword',
+    fig = px.line(df_flex_avg_vol, x=period_col, y='Average Search Volume', color='Keyword', # Color by Keyword (Značka)
                   labels={'Average Search Volume': 'Priemerný objem', 'Keyword': 'Značka', period_col: granularity_label_for_display},
                   title=title, markers=True, 
                   category_orders={"Keyword": keyword_order, period_col: unique_periods})
@@ -102,12 +100,12 @@ def create_mc_flexible_avg_volume_chart(df_flex_avg_vol, period_col, granularity
     return fig
 
 def create_mc_flexible_avg_volume_stacked_bar_chart(df_flex_avg_vol, period_col, granularity_str_for_sort, granularity_label_for_display, keyword_order, selected_countries_str):
-    """Graf 4 (Multi-Country): Flexibilný PRIEMERNÝ objem pre vybrané značky (Skladaný stĺpcový)."""
+    """Graf 4 (Multi-Country): Flexibilný PRIEMERNÝ objem pre vybrané ZNAČKY (Skladaný stĺpcový)."""
     if df_flex_avg_vol.empty or 'Average Search Volume' not in df_flex_avg_vol.columns or df_flex_avg_vol['Average Search Volume'].sum(skipna=True) <=0: 
         return None
-    title = f"4. Priemerný objem pre vybrané značky (krajiny sčítané: {selected_countries_str}) - Skladaný stĺpcový" 
+    title = f"4. Priemerný objem pre vybrané ZNAČKY (krajiny sčítané: {selected_countries_str}) - Skladaný stĺpcový" # Upravený titulok pre jasnosť
     unique_periods = sorted(df_flex_avg_vol[period_col].unique(), key=get_period_sort_key_func(granularity_str_for_sort))
-    fig = px.bar(df_flex_avg_vol, x=period_col, y='Average Search Volume', color='Keyword',
+    fig = px.bar(df_flex_avg_vol, x=period_col, y='Average Search Volume', color='Keyword', # Color by Keyword (Značka)
                   labels={'Average Search Volume': 'Priemerný objem', 'Keyword': 'Značka', period_col: granularity_label_for_display},
                   title=title, 
                   category_orders={"Keyword": keyword_order, period_col: unique_periods},
@@ -115,13 +113,59 @@ def create_mc_flexible_avg_volume_stacked_bar_chart(df_flex_avg_vol, period_col,
     fig.update_layout(yaxis_title='Priemerný objem vyhľadávania (Skladaný)', legend_title_text='Značky', height=700)
     return fig
 
+# --- NOVÉ FUNKCIE PRE GRAFY 5 A 6 (Flexibilný priemerný objem podľa KRAJÍN) ---
+def create_mc_flexible_avg_volume_by_country_line_chart(df_flex_avg_vol_by_country, period_col, granularity_str_for_sort, granularity_label_for_display, country_order, selected_brands_str, title_prefix="5."):
+    """Graf 5 (Multi-Country): Flexibilný PRIEMERNÝ objem podľa KRAJÍN (Čiarový)."""
+    if df_flex_avg_vol_by_country.empty or 'Average Search Volume' not in df_flex_avg_vol_by_country.columns or df_flex_avg_vol_by_country['Average Search Volume'].sum(skipna=True) <=0: 
+        return None
+    # Stĺpec s krajinami by mal byť 'Country' na základe transform_flexible_avg_volume_by_country_display
+    if 'Country' not in df_flex_avg_vol_by_country.columns:
+        # Fallback alebo logovanie chyby, ak stĺpec chýba
+        print("Chyba: Stĺpec 'Country' chýba v dátach pre graf create_mc_flexible_avg_volume_by_country_line_chart.")
+        return None
+        
+    title = f"{title_prefix} Priemerný objem podľa KRAJÍN (značky sčítané: {selected_brands_str}) - Čiarový"
+    unique_periods = sorted(df_flex_avg_vol_by_country[period_col].unique(), key=get_period_sort_key_func(granularity_str_for_sort))
+    
+    fig = px.line(df_flex_avg_vol_by_country, x=period_col, y='Average Search Volume', color='Country', # ZMENA: color='Country'
+                  labels={'Average Search Volume': 'Priemerný objem', 'Country': 'Krajina', period_col: granularity_label_for_display},
+                  title=title, markers=True, 
+                  category_orders={"Country": country_order, period_col: unique_periods}) 
+    fig.update_layout(yaxis_title='Priemerný objem vyhľadávania', legend_title_text='Krajiny', height=600) 
+    return fig
+
+def create_mc_flexible_avg_volume_by_country_stacked_bar_chart(df_flex_avg_vol_by_country, period_col, granularity_str_for_sort, granularity_label_for_display, country_order, selected_brands_str, title_prefix="6."):
+    """Graf 6 (Multi-Country): Flexibilný PRIEMERNÝ objem podľa KRAJÍN (Skladaný stĺpcový)."""
+    if df_flex_avg_vol_by_country.empty or 'Average Search Volume' not in df_flex_avg_vol_by_country.columns or df_flex_avg_vol_by_country['Average Search Volume'].sum(skipna=True) <=0: 
+        return None
+    if 'Country' not in df_flex_avg_vol_by_country.columns:
+        print("Chyba: Stĺpec 'Country' chýba v dátach pre graf create_mc_flexible_avg_volume_by_country_stacked_bar_chart.")
+        return None
+
+    title = f"{title_prefix} Priemerný objem podľa KRAJÍN (značky sčítané: {selected_brands_str}) - Skladaný stĺpcový" 
+    unique_periods = sorted(df_flex_avg_vol_by_country[period_col].unique(), key=get_period_sort_key_func(granularity_str_for_sort))
+    
+    fig = px.bar(df_flex_avg_vol_by_country, x=period_col, y='Average Search Volume', color='Country', # ZMENA: color='Country'
+                  labels={'Average Search Volume': 'Priemerný objem', 'Country': 'Krajina', period_col: granularity_label_for_display},
+                  title=title, 
+                  category_orders={"Country": country_order, period_col: unique_periods},
+                  barmode='stack')
+    fig.update_layout(yaxis_title='Priemerný objem vyhľadávania (Skladaný)', legend_title_text='Krajiny', height=700)
+    return fig
+
+
+# --- Graf pre pôvodný graf č. 5 (teraz č. 7) ---
 def create_mc_segment_avg_volume_custom_countries_chart(df_segment_avg_vol, period_col, granularity_str_for_sort, granularity_label_for_display, selected_countries_str):
-    """Graf 5 (Multi-Country): Priemerný mesačný objem segmentu pre VLASTNÝ VÝBER KRAJÍN."""
+    """Graf 7 (Multi-Country, pôvodne 5): Priemerný mesačný objem segmentu pre VLASTNÝ VÝBER KRAJÍN."""
     if df_segment_avg_vol.empty or 'AvgMonthlySegmentVolume' not in df_segment_avg_vol.columns or df_segment_avg_vol['AvgMonthlySegmentVolume'].sum(skipna=True) <= 0: 
         return None
-    title = f"5. Priemerný mesačný objem segmentu (krajiny: {selected_countries_str})"
+    # Titulok sa nastavuje v multi_country_page.py, tu môže byť generický alebo ho odstrániť
+    # title = f"7. Priemerný mesačný objem segmentu (krajiny: {selected_countries_str})" # Číslo sa môže meniť, lepšie nastavovať v UI
     unique_periods = sorted(df_segment_avg_vol[period_col].unique(), key=get_period_sort_key_func(granularity_str_for_sort))
-    fig = px.bar(df_segment_avg_vol, x=period_col, y='AvgMonthlySegmentVolume', labels={'AvgMonthlySegmentVolume': 'Priem. mesačný objem segmentu', period_col: granularity_label_for_display}, title=title, category_orders={period_col: unique_periods})
+    fig = px.bar(df_segment_avg_vol, x=period_col, y='AvgMonthlySegmentVolume', 
+                 labels={'AvgMonthlySegmentVolume': 'Priem. mesačný objem segmentu', period_col: granularity_label_for_display}, 
+                 # title=title, # Odstránený fixný titulok, bude nastavený dynamicky v UI
+                 category_orders={period_col: unique_periods})
     fig.update_layout(yaxis_title='Priemerný mesačný objem vyhľadávania', height=500)
     fig.update_traces(texttemplate='%{y:,.0f}', textposition='outside')
     return fig
