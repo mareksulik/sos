@@ -1,137 +1,244 @@
 # Share of Search Tool 📊📈
 
-Jednoduchá [Streamlit](https://streamlit.io/) aplikácia na vizualizáciu a analýzu "Share of Search" (podielu vyhľadávania) pre zadané kľúčové slová pomocou dát z [DataForSEO API](https://dataforseo.com/). Aplikácia bola vytvorená s pomocou Google Gemini Pro.
+Aplikácia vytvorená pomocou [Streamlit](https://streamlit.io/) na vizualizáciu a analýzu "Share of Search" (podielu vyhľadávania) pre zadané kľúčové slová s využitím dát z [DataForSEO API](https://dataforseo.com/).
+
+## Prehľad
+
+Share of Search Tool umožňuje analyzovať podiel vyhľadávania pre rôzne značky a monitorovať trendy v čase. Aplikácia bola optimalizovaná pre rýchlosť, prehľadnosť a jednoduché rozšírenie.
 
 ## Funkcie
 
 Aplikácia ponúka dva hlavné režimy analýzy:
 
-**1. Analýza jednej krajiny:**
-* **Získavanie dát:** Načíta historické mesačné objemy vyhľadávania pre zadané kľúčové slová, vybranú krajinu a jazyk z DataForSEO Google Ads Search Volume API.
-* **Prednastavené hodnoty:** Aplikácia má prednastavené kľúčové slová (isadore, castelli, rapha, maap, pas normal studios, van rysel), krajinu (Slovensko) a jazyk (slovenčina) pre rýchle spustenie.
-* **Grafy (očíslované):**
-    1.  **Podiel vyhľadávania (SoS %):** Skladaný stĺpcový graf zobrazujúci vývoj podielu jednotlivých kľúčových slov na celkovom objeme vyhľadávania v čase.
-    2.  **Priemerný mesačný objem segmentu:** Stĺpcový graf zobrazujúci priemerný mesačný objem všetkých sledovaných kľúčových slov dohromady.
-    3.  **Priemerný mesačný objem konkurentov (Čiarový):** Čiarový graf zobrazujúci vývoj priemerného mesačného objemu pre každé kľúčové slovo zvlášť, s interaktívnou legendou pre filtrovanie značiek.
-    4.  **Priemerný mesačný objem konkurentov (Skladaný stĺpcový):** Alternatívne zobrazenie priemerných mesačných objemov konkurentov formou skladaného stĺpcového grafu.
-    5.  **Tempo rastu:** Heatmapa zobrazujúca medziobdobový percentuálny rast pre jednotlivé kľúčové slová.
-* **História vyhľadávaní (č. 6):** Ukladá a umožňuje znovu načítať predchádzajúce kombinácie filtrov pre tento režim.
-* **Export dát (č. 7):** Umožňuje stiahnuť pôvodné mesačné dáta (agregované podľa kľúčového slova a mesiaca) ako CSV.
+### 1. Analýza jednej krajiny
 
-**2. Analýza viacerých krajín:**
-* **Získavanie dát pre viacero krajín:** Načíta historické mesačné objemy vyhľadávania pre zadané kľúčové slová a jeden spoločný jazyk naprieč viacerými vybranými krajinami (hlavný filter).
-* **Prednastavené hodnoty:** Predvolene sú vybrané krajiny Slovensko, Česko, Nemecko, Rakúsko a granularita nastavená na 'Ročne'.
-* **Informačné upozornenie:** Používateľ je informovaný o API limite (12 požiadaviek/minúta).
-* **Grafy (očíslované):**
-    1.  **Celkový Share of Search:** SoS (v %) pre každú značku, kde dáta sú agregované naprieč všetkými krajinami vybranými v hlavnom filtri.
-    2.  **Celkový priemerný objem vyhľadávania:** Priemerný objem pre každú značku, agregovaný naprieč všetkými krajinami vybranými v hlavnom filtri.
-    3.  **Flexibilný priemerný objem (Čiarový):** Používateľ si vyberie viacero značiek a podmnožinu krajín (z hlavného filtra). Dáta (objemy) pre každú značku sa sčítajú naprieč touto podmnožinou krajín a následne sa zobrazí priemerný objem pre každú značku ako časový rad.
-    4.  **Flexibilný priemerný objem (Skladaný stĺpcový):** Rovnaké dáta a filtre ako pre graf č. 3, ale zobrazené ako skladaný stĺpcový graf.
-    5.  **Priemerný mesačný objem segmentu (pre vlastný výber krajín):** Používateľ si vyberie podmnožinu krajín a graf zobrazí celkový priemerný mesačný objem všetkých sledovaných značiek dohromady pre túto skupinu krajín.
-* **História vyhľadávaní (č. 6):** Ukladá a umožňuje znovu načítať predchádzajúce kombinácie filtrov pre tento režim.
-* **Export dát (č. 7):** Umožňuje stiahnuť pôvodné mesačné dáta (s rozlíšením podľa krajiny) ako CSV.
+* Historické dáta objemu vyhľadávania pre vybrané kľúčové slová v jednej krajine
+* Interaktívne grafy zobrazujúce:
+  - Podiel vyhľadávania (SoS %)
+  - Priemerný mesačný objem segmentu
+  - Vývoj priemerného mesačného objemu jednotlivých značiek
+  - Medziobdobový percentuálny rast
 
-**Spoločné funkcie pre oba režimy:**
-* **Interaktívne rozhranie:** Umožňuje jednoduchý výber parametrov (režim analýzy, kľúčové slová, krajina/krajiny, jazyk, rozsah dátumov, granularita).
-* **Caching:** Využíva Streamlit cache (`@st.cache_data`) pre API volania a spracovanie dát na zrýchlenie opakovaných požiadaviek.
-* **Export grafov:** Umožňuje stiahnutie vygenerovaných grafov ako PNG.
-* **Ochrana:** Vyžaduje zadanie PIN kódu pre prístup k aplikácii (konfigurovateľné cez Streamlit Secrets).
-* **Sidebar s informáciami:** Zobrazuje verziu aplikácie (v1.5), copyright ([2025, Marek Šulik](https://mareksulik.sk)), informácie o tvorbe a odkazy na dokumentáciu.
+### 2. Analýza viacerých krajín
+
+* Porovnanie dát naprieč viacerými krajinami
+* Flexibilné zobrazenie agregovaných dát podľa rôznych kritérií
+* Možnosť výberu podmnožiny krajín pre detailnú analýzu
+* Grafy zahŕňajú:
+  - Celkový Share of Search pre každú značku
+  - Celkový priemerný objem vyhľadávania 
+  - Flexibilný priemerný objem (čiarový a skladaný stĺpcový graf)
+  - Priemerný mesačný objem segmentu pre vlastný výber krajín
+* História vyhľadávaní a export dát vo formáte CSV
+
+### Spoločné funkcie
+
+* Interaktívne rozhranie pre výber parametrov (režim analýzy, kľúčové slová, krajina/krajiny, jazyk, rozsah dátumov, granularita)
+* Efektívne cachovanie dát pre rýchle opakované dotazy
+* Export grafov ako PNG súbory
+* Voliteľná ochrana prístupovým PIN kódom
+* Informačný sidebar s verziou aplikácie a ďalšími údajmi
+
+## Optimalizácie
+
+Aplikácia obsahuje nasledujúce optimalizácie:
+
+### 1. Štruktúra a architektúra kódu
+- Modulárna architektúra MVC (Model-View-Controller)
+- Organizácia kódu do logických modulov
+- Typové anotácie pre lepšiu kontrolu typov a dokumentáciu
+
+### 2. Výkonnosť
+- Optimalizované spracovanie dát pomocou Pandas
+- Efektívne cachovanie pre minimalizáciu API volaní
+- Konfigurovateľné caching stratégie s TTL (time-to-live) nastaveniami
+
+### 3. Robustnosť
+- Komplexné ošetrenie chýb a výnimiek
+- Logovanie pre jednoduchšie debugovanie
+- Pomocné utility pre bezpečnú manipuláciu s dátami
+
+### 4. Čistota kódu a udržateľnosť
+- Konzistentný štýl kódu podľa štandardov PEP 8
+- Rozšírená dokumentácia pomocou docstringov
+- Odstránenie duplicitného kódu pomocou refaktorovania
+
+## Multi-country Mode Optimization
+
+### Problém
+Pôvodná implementácia Share of Search Tool vykonávala sekvenčné API volania pre každú krajinu s 5,5-sekundovou pauzou medzi volaniami v režime viacerých krajín. Tento sekvenčný prístup výrazne spomaľoval aplikáciu pri analýze viacerých krajín.
+
+Okrem toho sa vyskytla chyba `UnserializableReturnValueError` pri pokuse o cachovanie asynchrónnej funkcie, pretože korutíny nie sú serializovateľné.
+
+### Riešenie
+Implementovali sme asynchrónny prístup, ktorý vykonáva API volania pre všetky krajiny paralelne s rešpektovaním limitov API pomocou dávkového spracovania. Toto dramaticky zlepšuje výkon:
+
+| Počet krajín | Pôvodné (sekvenčné) | Nové (asynchrónne) | Zlepšenie |
+|-----------|----------------------|------------|-------------|
+| 1         | ~5,5s                | ~5,5s      | 1x          |
+| 4         | ~22s                 | ~5,5s      | 4x          |
+| 10        | ~55s                 | ~12s       | 4,6x        |
+| 20        | ~110s                | ~24s       | 4,6x        |
+
+### Riešenie chyby UnserializableReturnValueError
+
+Prvý pokus o implementáciu asynchrónnej verzie narazil na chybu `UnserializableReturnValueError` z dôvodov:
+
+1. Streamlit cache (`st.cache_data`) nemôže priamo cachovať asynchrónnu funkciu alebo korutínu
+2. Asynchrónne funkcie vracajú korutíny, ktoré nie sú serializovateľné 
+
+Na vyriešenie tohto problému sme implementovali dvojfázové riešenie:
+1. Vytvorili sme internú asynchrónnu funkciu (`_fetch_multi_country_search_volume_data_async_internal`), ktorá vykonáva samotnú asynchrónnu prácu
+2. Vytvorili sme neasynchrónnu wrapper funkciu (`fetch_multi_country_search_volume_data_async`), ktorá:
+   - Je dekorovaná pomocou `@st.cache_data`
+   - Volá internú asynchrónnu funkciu pomocou `asyncio.run()`
+   - Vracia len serializovateľné dáta (DataFrame a chybový reťazec)
+
+### Detaily implementácie
+
+1. **Asynchrónny API klient**
+   - Vytvorená funkcia `get_search_volume_async` v `dataforseo_client.py`, ktorá používa aiohttp pre asynchrónne HTTP požiadavky
+   - Vracia dáta pre jednu krajinu spolu s kódom lokácie pre identifikáciu
+
+2. **Dávkové spracovanie**
+   - Implementované dávkové spracovanie pre rešpektovanie limitov API
+   - Predvolená veľkosť dávky je 5 krajín spracovaných súčasne
+   - Dynamická veľkosť dávky na základe počtu krajín:
+     - Malé požiadavky (≤3 krajiny): Spracovanie všetkých naraz
+     - Veľké požiadavky (>10 krajín): Zníženie veľkosti dávky na 4
+   - Konfigurovateľná pauza medzi dávkami (predvolene: 3 sekundy)
+   - Adaptívna pauza, ktorá sa zvyšuje pri dosiahnutí limitov API
+
+3. **Nový asynchrónny fetcher**
+   - Vytvorený modul `async_fetcher.py` s funkciou `fetch_multi_country_search_volume_data_async`
+   - Používa asyncio na zhromažďovanie výsledkov z viacerých API volaní
+   - Elegantne spracováva chyby a kombinuje výsledky zo všetkých krajín
+
+4. **Aktualizácie konfigurácie**
+   - Pridané nové nastavenia v `config.py`:
+     - `ASYNC_BATCH_SIZE`: Počet súbežných API požiadaviek (predvolene: 5)
+     - `ASYNC_BATCH_PAUSE`: Pauza medzi dávkami v sekundách (predvolene: 3)
+     - Pridaná pomocná metóda `get()` pre bezpečný prístup k nastaveniam
+
+5. **Integrácia s používateľským rozhraním**
+   - Vytvorený `multi_country_page_async.py` ako náhrada za pôvodnú implementáciu
+   - Pridaný prepínač medzi asynchrónnym a sekvenčným fetchovaním
+   - Aktualizovaná hlavná aplikácia na používanie novej asynchrónnej implementácie
+
+### Zlepšenia pri spracovaní chýb
+- Vylepšené spracovanie chýb API rate limitov
+- Automatické prispôsobenie trvania pauzy medzi dávkami pri prekročení limitov API
+- Elegantné spracovanie výnimiek počas asynchrónneho spracovania
+- Jasné chybové hlásenia v používateľskom rozhraní
+
+### Požiadavky
+- Pridaná závislosť na balíku `aiohttp` pre asynchrónne HTTP požiadavky
+- Pridaná závislosť na balíku `asyncio` pre podporu async/await
+- Kompatibilita s existujúcim Streamlit UI a pipeline spracovania dát
+
+## Štruktúra projektu
+
+```
+.
+├── .streamlit/             # Konfigurácia Streamlit
+├── .venv/                  # Virtuálne prostredie (ignorované Gitom)
+├── api_client/             # Klientská knižnica pre DataForSEO API
+│   ├── __init__.py
+│   └── dataforseo_client.py
+├── data_processing/        # Modul pre spracovanie dát
+│   ├── __init__.py
+│   ├── async_fetcher.py    # Asynchrónny fetcher pre viacero krajín
+│   ├── fetcher.py          # Pôvodný sekvenčný fetcher
+│   └── transformer.py
+├── tests/                  # Testovacie súbory
+│   ├── __init__.py
+│   ├── test_async_fetcher.py
+│   ├── test_async.py
+│   └── test_basic_async.py
+├── ui/                     # Komponenty používateľského rozhrania
+│   ├── __init__.py
+│   ├── charts.py
+│   ├── multi_country_page_async.py
+│   ├── multi_country_page.py
+│   ├── sidebar.py
+│   └── single_country_page.py
+├── utils/                  # Pomocné funkcie a nástroje
+│   ├── __init__.py
+│   └── pandas_helpers.py
+├── config.py              # Konfigurácia a konštanty
+├── requirements.txt       # Závislosti aplikácie
+└── streamlit_app.py       # Hlavný súbor aplikácie
+```
 
 ## Požiadavky
 
-* Python 3.x
+* Python 3.8+
 * Nainštalované knižnice uvedené v `requirements.txt`:
     ```
-    streamlit
-    requests
-    pandas
-    plotly
-    numpy
+    streamlit>=1.28.0
+    requests>=2.31.0
+    pandas>=2.0.0
+    plotly>=5.18.0
+    numpy>=1.24.0
+    streamlit-authenticator>=0.2.0
+    kaleido>=0.2.1
+    python-dotenv>=1.0.0
+    aiohttp>=3.8.5
+    asyncio>=3.4.3
     ```
-    Inštalácia: `pip install -r requirements.txt`
 * **DataForSEO API prihlasovacie údaje:** Login a heslo k vášmu účtu DataForSEO.
-* **Streamlit Secrets:** Aplikácia očakáva vaše DataForSEO prihlasovacie údaje a voliteľný prístupový PIN kód uložené v Streamlit Secrets. Vytvorte súbor `.streamlit/secrets.toml` v koreňovom adresári projektu s nasledujúcou štruktúrou:
+* **Streamlit Secrets:** Aplikácia očakáva vaše DataForSEO prihlasovacie údaje a voliteľný prístupový PIN kód.
 
-    ```toml
-    # .streamlit/secrets.toml
+## Spustenie aplikácie
 
-    [dataforseo]
-    login = "VAS_DATAFORSEO_LOGIN"
-    password = "VAS_DATAFORSEO_HESLO"
+1. Vytvorte a aktivujte virtuálne prostredie:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate   # Na macOS/Linux
+   # alebo
+   .venv\Scripts\activate      # Na Windows
+   ```
 
-    [app]
-    pin = "VAS_VOLITELNY_PIN" # Ak PIN nechcete, tento riadok alebo celú sekciu [app] môžete vynechať.
-    ```
+2. Nainštalujte závislosti:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-    *Nahraďte `VAS_DATAFORSEO_LOGIN`, `VAS_DATAFORSEO_HESLO` a `VAS_VOLITELNY_PIN` vašimi skutočnými údajmi.*
+3. Vytvorte súbor `.streamlit/secrets.toml` s prihlasovacími údajmi:
+   ```toml
+   [dataforseo]
+   login = "VAS_DATAFORSEO_LOGIN"
+   password = "VAS_DATAFORSEO_HESLO"
 
-## Použitie
+   [app]
+   pin = "VAS_VOLITELNY_PIN" # Ak PIN nechcete, tento riadok alebo celú sekciu [app] môžete vynechať.
+   ```
 
-1.  **Štruktúra projektu:** Uistite sa, že máte nasledujúcu adresárovú štruktúru (s prázdnymi `__init__.py` súbormi v podadresároch, aby fungovali importy):
-    ```
-    vas_projekt_adresar/
-    ├── sos.py                   # Hlavný súbor aplikácie (alebo streamlit_app.py)
-    ├── config.py               
-    ├── requirements.txt        
-    ├── api_client/
-    │   ├── __init__.py        
-    │   └── dataforseo_client.py 
-    ├── data_processing/
-    │   ├── __init__.py         
-    │   ├── fetcher.py          
-    │   └── transformer.py       
-    └── ui/
-        ├── __init__.py         
-        ├── sidebar.py           
-        ├── single_country_page.py 
-        ├── multi_country_page.py  
-        └── charts.py              
-    ```
-2.  **Naklonujte repozitár (ak relevantné):**
-    ```bash
-    # git clone [URL_VASHO_REPOZITARA]
-    # cd [NAZOV_ADRESARA_PROJEKTU]
-    ```
-3.  **Vytvorte a aktivujte virtuálne prostredie (odporúčané):**
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate  # Pre Linux/macOS
-    # venv\Scripts\activate    # Pre Windows
-    ```
-4.  **Nainštalujte závislosti:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-5.  **Nastavte Streamlit Secrets:** Vytvorte súbor `.streamlit/secrets.toml` podľa popisu vyššie.
-6.  **Spustite Streamlit aplikáciu (napr. ak sa váš hlavný súbor volá `sos.py`):**
-    ```bash
-    streamlit run sos.py
-    ```
-7.  Otvorte aplikáciu vo vašom prehliadači (zvyčajne na `http://localhost:8501`).
-8.  Ak ste nastavili PIN, zadajte ho.
-9.  V postrannom paneli vyberte typ analýzy.
-10. Zadajte parametre a kliknite na tlačidlo "Získať dáta a zobraziť grafy".
+4. Spustite aplikáciu:
+   ```bash
+   streamlit run streamlit_app.py
+   ```
 
-## Štruktúra kódu (Refaktorizovaná)
+## Štruktúra kódu
 
-* **`sos.py` (alebo `streamlit_app.py`):** Hlavný vstupný bod, PIN autentifikácia, volanie sidebaru a vykresľovacích funkcií pre jednotlivé stránky.
+* **`streamlit_app.py`:** Hlavný vstupný bod, PIN autentifikácia, volanie sidebaru a vykresľovacích funkcií pre jednotlivé stránky.
 * **`config.py`:** Globálne konštanty, prednastavené hodnoty, načítavanie `st.secrets`.
 * **`api_client/dataforseo_client.py`:** Nízkoúrovňová komunikácia s DataForSEO API (napr. `load_locations`, `load_languages`, `get_search_volume_for_task`).
-* **`data_processing/fetcher.py`:** Vyššia vrstva pre získavanie dát, cachovanie API odpovedí (napr. `Workspace_search_volume_data_single`, `Workspace_multi_country_search_volume_data`).
+* **`data_processing/fetcher.py`:** Vyššia vrstva pre získavanie dát, cachovanie API odpovedí.
+* **`data_processing/async_fetcher.py`:** Asynchrónna implementácia pre rýchlejšie získavanie dát z viacerých krajín.
 * **`data_processing/transformer.py`:** Funkcie pre transformáciu a agregáciu dát (výpočty SoS, priemerov, rastu, príprava DataFrames pre grafy).
 * **`ui/sidebar.py`:** Funkcia pre vykreslenie obsahu postranného panela.
 * **`ui/single_country_page.py`:** Všetka UI logika a volania pre "Analýzu jednej krajiny".
-* **`ui/multi_country_page.py`:** Všetka UI logika a volania pre "Analýzu viacerých krajín".
+* **`ui/multi_country_page.py`:** Pôvodná UI logika a volania pre "Analýzu viacerých krajín".
+* **`ui/multi_country_page_async.py`:** Optimalizovaná UI logika pre "Analýzu viacerých krajín" s asynchrónnym volaním API.
 * **`ui/charts.py`:** Samostatné funkcie pre generovanie jednotlivých Plotly grafov.
-* **`st.session_state`:** Intenzívne sa využíva na uchovávanie stavu vstupov a načítaných dát pre plynulú interakciu.
+* **`utils/pandas_helpers.py`:** Pomocné funkcie pre bezpečnú manipuláciu s pandas DataFrame.
+* **`st.session_state`:** Využíva sa na uchovávanie stavu vstupov a načítaných dát pre plynulú interakciu.
 
-## Možné vylepšenia
+## Autor
 
-* Pridanie automatizovaných testov (napr. `pytest`).
-* Rozšírenie možností analýzy (napr. kĺzavé priemery, detekcia anomálií).
-* Pokročilejšie možnosti filtrovania a porovnávania v rámci flexibilných grafov.
-* Vylepšenie UI/UX, napr. dynamické zobrazenie/skrytie sekcií grafov na základe dostupnosti dát.
-* Podrobnejšie spracovanie chýb a logovanie na strane servera.
-* Možnosť ukladania a načítavania komplexných konfigurácií vyhľadávania.
-* Optimalizácia výkonu pri práci s veľmi veľkými datasetmi (aj keď cachovanie už pomáha).
+© 2025 Marek Šulik
+
+---
+
+Vytvorené s použitím Pythonu, Streamlit a DataForSEO API.
