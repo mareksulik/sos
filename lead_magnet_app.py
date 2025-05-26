@@ -12,6 +12,7 @@ from io import BytesIO
 from datetime import date, timedelta
 from typing import Optional, List, Tuple, Dict, Any
 import os
+from supabase import create_client
 
 
 def get_image_as_base64(image_path):
@@ -160,8 +161,53 @@ def is_valid_email(email: str) -> bool:
     pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return bool(re.match(pattern, email))
 
+def init_supabase():
+    """Inicializuje Supabase klienta.
+    
+    Returns:
+        Supabase klient alebo None v prípade chyby
+    """
+    try:
+        url = st.secrets["supabase"]["url"]
+        key = st.secrets["supabase"]["key"]
+        return create_client(url, key)
+    except Exception as e:
+        logger.error(f"Failed to initialize Supabase client: {e}")
+        return None
+
 def email_used_three_times(email: str) -> bool:
-    """Skontroluje, či email už bol použitý trikrát v súbore s leadmi.
+    """Skontroluje, či email už bol použitý trikrát v Supabase.
+    
+    Args:
+        email: Email na kontrolu
+        
+    Returns:
+        bool: True ak email už bol použitý trikrát, inak False
+    """
+    try:
+        supabase = init_supabase()
+        if not supabase:
+            # Fallback na pôvodné správanie v prípade chyby
+            logger.warning("Using fallback email check with CSV file")
+            return fallback_email_used_three_times(email)
+        
+        # Získať počet záznamov s daným emailom
+        response = supabase.table('leads').select('id').eq('email', email.lower()).execute()
+        
+        # Kontrola odpovede
+        if hasattr(response, 'data') and isinstance(response.data, list):
+            return len(response.data) >= 3
+        
+        logger.warning(f"Unexpected response from Supabase: {response}")
+        return False
+        
+    except Exception as e:
+        logger.error(f"Failed to check if email exists in Supabase: {e}")
+        # Fallback na pôvodné správanie v prípade chyby
+        return fallback_email_used_three_times(email)
+
+def fallback_email_used_three_times(email: str) -> bool:
+    """Pôvodná funkcia pre kontrolu emailu v CSV súbore (fallback).
     
     Args:
         email: Email na kontrolu
@@ -185,12 +231,53 @@ def email_used_three_times(email: str) -> bool:
                         return True
         return False
     except Exception as e:
-        logger.error(f"Failed to check if email exists: {e}")
+        logger.error(f"Failed to check if email exists in CSV: {e}")
         # V prípade chyby radšej dovolíme uložiť email
         return False
 
 def save_lead_info(email: str, keywords: List[str], country: str, language: str):
-    """Uloží informácie o leade do databázy alebo súboru.
+    """Uloží informácie o leade do Supabase databázy.
+    
+    Args:
+        email: Email používateľa
+        keywords: Kľúčové slová zadané používateľom
+        country: Vybraná krajina
+        language: Vybraný jazyk
+    """
+    try:
+        supabase = init_supabase()
+        if not supabase:
+            # Fallback na pôvodné správanie v prípade chyby
+            logger.warning("Using fallback save method with CSV file")
+            fallback_save_lead_info(email, keywords, country, language)
+            return
+        
+        # Príprava dát pre vloženie
+        data = {
+            'email': email.lower(),
+            'keywords': ','.join(keywords),
+            'country': country,
+            'language': language
+        }
+        
+        # Vloženie dát do tabuľky
+        response = supabase.table('leads').insert(data).execute()
+        
+        # Kontrola odpovede
+        if hasattr(response, 'data') and isinstance(response.data, list) and len(response.data) > 0:
+            logger.info(f"Lead information saved to Supabase: {email}")
+        else:
+            logger.warning(f"Unexpected response from Supabase: {response}")
+            # Fallback na pôvodné správanie v prípade problému
+            fallback_save_lead_info(email, keywords, country, language)
+            
+    except Exception as e:
+        logger.error(f"Failed to save lead information to Supabase: {e}")
+        # Fallback na pôvodné správanie v prípade chyby
+        fallback_save_lead_info(email, keywords, country, language)
+
+def fallback_save_lead_info(email: str, keywords: List[str], country: str, language: str):
+    """Pôvodná funkcia pre uloženie do CSV súboru (fallback).
     
     Args:
         email: Email používateľa
@@ -202,9 +289,9 @@ def save_lead_info(email: str, keywords: List[str], country: str, language: str)
         # Uloženie do súboru ako základné riešenie
         with open("leads.csv", "a") as f:
             f.write(f"{email},{','.join(keywords)},{country},{language}\n")
-        logger.info(f"Lead information saved: {email}")
+        logger.info(f"Lead information saved to CSV: {email}")
     except Exception as e:
-        logger.error(f"Failed to save lead information: {e}")
+        logger.error(f"Failed to save lead information to CSV: {e}")
 
 def get_location_language_options(api_login: str, api_password: str) -> Tuple[Dict[str, Any], str, Dict[str, Any], str]:
     """
