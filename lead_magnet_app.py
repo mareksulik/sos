@@ -123,6 +123,10 @@ CUSTOM_CSS = """
         background-color: #DAEC34;
         color: #202028;
     }
+    
+    /* Skrytie horného menu */
+    header {display: none !important;}
+    .stToolbar {display: none !important;}
 </style>
 """
 
@@ -360,7 +364,7 @@ def main():
         # Optimized center alignment with improved styling
         base64_logo = get_image_as_base64("snag.png")
         st.markdown(f"""
-        <div style="display: flex; justify-content: center; align-items: center; margin: 30px 0;">
+        <div style="display: flex; justify-content: center; align-items: center; margin: 10px 0;">
             <img src="data:image/png;base64,{base64_logo}" style="width: 350px;">
         </div>
         """, unsafe_allow_html=True)
@@ -373,13 +377,13 @@ def main():
     st.markdown("""
     <div style="background-color: #f8f8f8; border-left: 4px solid #DAEC34; padding: 15px; margin: 15px 0; border-radius: 0 5px 5px 0;">
         <p style="font-size: 1.1rem; color: #202028; margin: 0;">
-        <strong>Share of Search</strong> je kľúčová metrika, ktorá meria percentuálny podiel vyhľadávaní vašej značky v porovnaní s konkurenciou v rámci vášho trhu. Vyšší podiel znamená väčšiu viditeľnosť, silnejšie povedomie o značke a potenciálne vyšší tržný podiel.
+        <strong>Share of Search</strong> je metrika, ktorá meria percentuálny podiel vyhľadávaní vašej značky v porovnaní s konkurenciou v rámci vášho trhu. Vyšší podiel znamená väčšiu viditeľnosť, silnejšie povedomie o značke a potenciálne vyšší tržný podiel.
         </p>
         <p style="font-size: 1.1rem; color: #202028; margin-top: 10px;">
-        Tento nástroj vám umožňuje sledovať vývoj objemu vyhľadávaní kľúčových slov v čase, analyzovať trendy a systematicky porovnávať výkonnosť vašej značky s konkurenčnými výrazmi. Získate tak cenné poznatky o tom, ako sa mení záujem o vašu značku a kde máte priestor na zlepšenie.
+        Tento nástroj vám umožňuje sledovať vývoj objemu vyhľadávaní kľúčových slov za posledné 4 roky, analyzovať trendy a porovnávať výkonnosť vašej značky s konkurentmi. Získate tak cenné dáta o tom, ako sa mení záujem o vašu značku a kde máte priestor na zlepšenie.
         </p>
         <p style="font-size: 1.1rem; color: #202028; margin-top: 10px;">
-        Nástroj je úplne zadarmo – stačí len zadať váš email a môžete začať okamžite analyzovať svoju pozíciu na trhu voči konkurencii. Vyplňte formulár nižšie pre zobrazenie analýzy vašich kľúčových slov. Jednu emailovú adresu môžete použiť na tri analýzy.
+        Nástroj je úplne zadarmo – stačí len vyplniť formulár nižšie. Jednu emailovú adresu môžete použiť na tri analýzy.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -411,7 +415,7 @@ def main():
             email = st.text_input("Váš email:", placeholder="email@example.com")
             
             # Súhlas s kontaktovaním
-            consent = st.checkbox("Súhlasím so spracovaním mojej e-mailovej adresy za účelom zasielania newslettera v súlade so zásadami ochrany osobných údajov.")
+            consent = st.checkbox("Súhlasím so zasielaním newslettera v súlade so zásadami ochrany osobných údajov.")
         
         with col2:
             # Krajina
