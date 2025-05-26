@@ -5,6 +5,19 @@ Všetky významné zmeny v tomto projekte budú zdokumentované v tomto súbore.
 Formát je založený na [Keep a Changelog](https://keepachangelog.com/sk/1.0.0/),
 a tento projekt dodržiava [Semantic Versioning](https://semver.org/lang/sk/).
 
+## [1.3.1] - 2025-05-26
+
+### Pridané
+- Lead magnet verzia aplikácie (lead_magnet_app.py)
+- Limit použitia emailovej adresy (maximálne 3x)
+- GDPR súhlas na spracovanie osobných údajov
+- Validácia emailovej adresy
+
+### Zmenené
+- Optimalizovaný dizajn lead magnet verzie
+- Aktualizovaná dokumentácia (LEAD_MAGNET_README.md)
+- Prispôsobená farebná schéma (#202028, #F1F0EB, #DAEC34)
+
 ## [1.3.0] - 2025-05-20
 
 ### Pridané

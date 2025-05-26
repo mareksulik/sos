@@ -31,6 +31,16 @@ Aplikácia ponúka dva hlavné režimy analýzy:
   - Priemerný mesačný objem segmentu pre vlastný výber krajín
 * História vyhľadávaní a export dát vo formáte CSV
 
+### 3. Lead Magnet verzia
+
+* Zjednodušená verzia nástroja určená na zber leadov
+* Jednoduchý formulár pre zadanie emailu a kľúčových slov
+* Validácia a ukladanie kontaktných údajov
+* Limit použitia emailovej adresy (maximálne 3x)
+* GDPR súhlas na spracovanie osobných údajov
+* Prispôsobený dizajn s definovanou farebnou schémou
+* Viac informácií v [LEAD_MAGNET_README.md](LEAD_MAGNET_README.md)
+
 ### Spoločné funkcie
 
 * Interaktívne rozhranie pre výber parametrov (režim analýzy, kľúčové slová, krajina/krajiny, jazyk, rozsah dátumov, granularita)
