@@ -5,7 +5,23 @@ Všetky významné zmeny v tomto projekte budú zdokumentované v tomto súbore.
 Formát je založený na [Keep a Changelog](https://keepachangelog.com/sk/1.0.0/),
 a tento projekt dodržiava [Semantic Versioning](https://semver.org/lang/sk/).
 
-## [1.3.1] - 2025-05-26
+## [1.3.2] - 2025-05-26
+
+### Pridané
+- Integrácia s Supabase databázou
+- Ukladanie leadov do Supabase namiesto CSV súboru
+- SQL skript na vytvorenie tabuľky pre leady
+
+### Zmenené
+- Odstránenie závislosti na lokálnom súbore leads.csv
+- Aktualizovaná dokumentácia (LEAD_MAGNET_README.md)
+- Optimalizované spracovanie dát 
+
+### Odstránené
+- Fallback mechanizmus na ukladanie do CSV súboru
+- Admin sekcia pre export leadov
+
+## [1.3.1] - 2025-05-25
 
 ### Pridané
 - Lead magnet verzia aplikácie (lead_magnet_app.py)

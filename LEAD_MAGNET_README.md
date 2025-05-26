@@ -11,7 +11,7 @@ Toto je zjednodušená verzia Share of Search Tool, ktorá slúži ako lead magn
   3. Priemerný mesačný objem konkurentov
   4. Priemerný mesačný objem konkurentov (Skladaný stĺpcový)
   5. Tempo rastu
-- Ukladanie informácií o leadoch do súboru leads.csv
+- Ukladanie informácií o leadoch do Supabase databázy
 - Prispôsobený dizajn s nastavenou farebnou schémou (#202028, #F1F0EB, #DAEC34)
 - Limit použitia emailovej adresy (maximálne 3x)
 - GDPR súhlas na spracovanie osobných údajov
@@ -27,8 +27,33 @@ streamlit run lead_magnet_app.py
 
 1. **Logo**: Nahraďte súbor `snag.png` vaším vlastným logom.
 2. **Farby**: Upravte CSS farby v konštante `CUSTOM_CSS` podľa vašej firemnej identity.
-3. **Ukladanie leadov**: Upravte funkciu `save_lead_info()` pre integráciu s vaším CRM systémom.
+3. **Ukladanie leadov**: Upravte konfiguráciu Supabase v súbore `.streamlit/secrets.toml`.
 4. **Predvolené hodnoty**: Aktualizujte predvolené kľúčové slová, krajinu a jazyk v hlavnej funkcii `main()`.
+
+## Nastavenie Supabase
+
+1. Vytvorte si účet na [Supabase](https://supabase.com/).
+2. Vytvorte novú databázu.
+3. Vytvorte tabuľku pre ukladanie leadov pomocou priloženého SQL skriptu:
+
+```sql
+CREATE TABLE IF NOT EXISTS leads (
+  id SERIAL PRIMARY KEY,
+  email TEXT NOT NULL,
+  keywords TEXT NOT NULL,
+  country TEXT NOT NULL,
+  language TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+4. Nakonfigurujte súbor `.streamlit/secrets.toml` s vašimi Supabase prihlasovacími údajmi:
+
+```toml
+[supabase]
+url = "https://your-project-url.supabase.co"
+key = "your-api-key"
+```
 
 ## Porovnanie s plnou verziou
 

@@ -187,9 +187,8 @@ def email_used_three_times(email: str) -> bool:
     try:
         supabase = init_supabase()
         if not supabase:
-            # Fallback na pôvodné správanie v prípade chyby
-            logger.warning("Using fallback email check with CSV file")
-            return fallback_email_used_three_times(email)
+            logger.error("Failed to initialize Supabase client")
+            return False
         
         # Získať počet záznamov s daným emailom
         response = supabase.table('leads').select('id').eq('email', email.lower()).execute()
@@ -203,36 +202,6 @@ def email_used_three_times(email: str) -> bool:
         
     except Exception as e:
         logger.error(f"Failed to check if email exists in Supabase: {e}")
-        # Fallback na pôvodné správanie v prípade chyby
-        return fallback_email_used_three_times(email)
-
-def fallback_email_used_three_times(email: str) -> bool:
-    """Pôvodná funkcia pre kontrolu emailu v CSV súbore (fallback).
-    
-    Args:
-        email: Email na kontrolu
-        
-    Returns:
-        bool: True ak email už bol použitý trikrát, inak False
-    """
-    try:
-        # Kontrola, či súbor existuje
-        if not os.path.isfile("leads.csv"):
-            return False
-        
-        # Počítanie výskytov emailu v súbore
-        email_count = 0
-        with open("leads.csv", "r") as f:
-            for line in f:
-                stored_email = line.strip().split(",")[0]
-                if stored_email.lower() == email.lower():
-                    email_count += 1
-                    if email_count >= 3:
-                        return True
-        return False
-    except Exception as e:
-        logger.error(f"Failed to check if email exists in CSV: {e}")
-        # V prípade chyby radšej dovolíme uložiť email
         return False
 
 def save_lead_info(email: str, keywords: List[str], country: str, language: str):
@@ -247,9 +216,7 @@ def save_lead_info(email: str, keywords: List[str], country: str, language: str)
     try:
         supabase = init_supabase()
         if not supabase:
-            # Fallback na pôvodné správanie v prípade chyby
-            logger.warning("Using fallback save method with CSV file")
-            fallback_save_lead_info(email, keywords, country, language)
+            logger.error("Failed to initialize Supabase client")
             return
         
         # Príprava dát pre vloženie
@@ -268,30 +235,9 @@ def save_lead_info(email: str, keywords: List[str], country: str, language: str)
             logger.info(f"Lead information saved to Supabase: {email}")
         else:
             logger.warning(f"Unexpected response from Supabase: {response}")
-            # Fallback na pôvodné správanie v prípade problému
-            fallback_save_lead_info(email, keywords, country, language)
             
     except Exception as e:
         logger.error(f"Failed to save lead information to Supabase: {e}")
-        # Fallback na pôvodné správanie v prípade chyby
-        fallback_save_lead_info(email, keywords, country, language)
-
-def fallback_save_lead_info(email: str, keywords: List[str], country: str, language: str):
-    """Pôvodná funkcia pre uloženie do CSV súboru (fallback).
-    
-    Args:
-        email: Email používateľa
-        keywords: Kľúčové slová zadané používateľom
-        country: Vybraná krajina
-        language: Vybraný jazyk
-    """
-    try:
-        # Uloženie do súboru ako základné riešenie
-        with open("leads.csv", "a") as f:
-            f.write(f"{email},{','.join(keywords)},{country},{language}\n")
-        logger.info(f"Lead information saved to CSV: {email}")
-    except Exception as e:
-        logger.error(f"Failed to save lead information to CSV: {e}")
 
 def get_location_language_options(api_login: str, api_password: str) -> Tuple[Dict[str, Any], str, Dict[str, Any], str]:
     """
