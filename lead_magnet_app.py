@@ -94,6 +94,14 @@ CUSTOM_CSS = """
         padding-top: 1rem;
         padding-bottom: 1rem;
     }
+    
+    /* Na mobilných zariadeniach nastavíme šírku na 90% */
+    @media screen and (max-width: 768px) {
+        .block-container {
+            max-width: 90% !important;
+        }
+    }
+    
     /* Prispôsobenie farieb pre formulár a iné prvky */
     .stTextInput > div > div, 
     .stTextArea > div > div, 
